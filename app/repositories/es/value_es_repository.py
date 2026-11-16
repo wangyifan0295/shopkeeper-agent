@@ -42,6 +42,12 @@ class ValueESRepository:
                 index=self.index_name, mappings=self.index_mappings
             )
 
+    async def drop_index(self):
+        """删除字段取值索引，供知识库全量重建前清理旧数据使用"""
+        # 只在索引确实存在时才删除，空集群首次构建也不会报错
+        if await self.client.indices.exists(index=self.index_name):
+            await self.client.indices.delete(index=self.index_name)
+
     async def index(self, value_infos: list[ValueInfo], batch_size=20):
         """分批写入字段取值，避免一次 bulk 过大"""
         if not value_infos:

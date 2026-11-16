@@ -70,6 +70,8 @@ async def build(config_path: Path):
     await dw_mysql_client_manager.close()
     await qdrant_client_manager.close()
     await es_client_manager.close()
+    # embedding 底层是 aiohttp 会话，不显式关闭会有连接泄漏告警
+    await embedding_client_manager.close()
 
 
 if __name__ == "__main__":

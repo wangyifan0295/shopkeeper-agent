@@ -33,6 +33,11 @@ class EmbeddingClientManager:
         self.client.client = InferenceClient(model=endpoint_url)
         self.client.async_client = AsyncInferenceClient(model=endpoint_url)
 
+    async def close(self):
+        """释放底层异步推理客户端持有的网络连接"""
+        # AsyncInferenceClient 内部是 aiohttp 会话，不关闭会有连接泄漏告警
+        await self.client.async_client.close()
+
 
 # 模块级单例，供整个项目复用同一套 Embedding 客户端管理器
 embedding_client_manager = EmbeddingClientManager(app_config.embedding)

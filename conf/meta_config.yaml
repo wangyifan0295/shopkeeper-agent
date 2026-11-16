@@ -1,176 +1,125 @@
 tables:
-  - name: dim_region
+  - name: dim_faction
     role: dim
-    description: 地区维度表，用于描述订单发生的地理区域信息。
+    description: 阵营维度表，阵营是英雄牌的归属体系，赛前每局会全员禁用一个阵营；主公不隶属阵营。
     columns:
-      - name: region_id
+      - name: faction_name
         role: primary_key
-        description: 地区唯一标识。
-        alias: [地区ID, 区域ID]
+        description: 阵营名称，如大河流域、逐鹿、日落海。
+        alias: [阵营, 阵营名称, 禁用阵营名]
+        sync: true
+
+      - name: is_enabled
+        role: dimension
+        description: 阵营是否启用，1=现役可用，0=已下架。
+        alias: [启用状态, 是否启用]
         sync: false
 
-      - name: province
-        role: dimension
-        description: 订单所属的省份名称。
-        alias: [省份, 省, 所在省份]
-        sync: true
-
-      - name: region_name
-        role: dimension
-        description: 订单所属的大区名称，如华东、华南等。
-        alias: [地区, 区域, 大区]
-        sync: true
-
-      - name: country
-        role: dimension
-        description: 地区所属国家名称。
-        alias: [国家, 国家名称]
-        sync: true
-
-  - name: dim_customer
+  - name: dim_lord
     role: dim
-    description: 客户维度表，描述下单客户的基本属性。
+    description: 主公维度表，主公是玩家开局选定的棋手角色，决定本局阵容方向；目录包含全部主公，含尚未登场的。
     columns:
-      - name: customer_id
+      - name: lord_name
         role: primary_key
-        description: 客户唯一标识。
-        alias: [客户ID, 用户ID]
+        description: 主公（棋手）名称，如阿离、镜、白歌。
+        alias: [主公, 棋手, 主公名称]
+        sync: true
+
+      - name: is_enabled
+        role: dimension
+        description: 主公是否启用，1=现役可选，0=已下架。
+        alias: [启用状态, 是否启用]
         sync: false
 
-      - name: customer_name
-        role: dimension
-        description: 客户名称。
-        alias: [客户名称, 用户名称]
-        sync: true
-
-      - name: gender
-        role: dimension
-        description: 客户性别。
-        alias: [性别]
-        sync: true
-
-      - name: member_level
-        role: dimension
-        description: 客户会员等级。
-        alias: [会员等级, 用户等级]
-        sync: true
-
-  - name: dim_product
-    role: dim
-    description: 商品维度表，描述商品的基本属性信息。
-    columns:
-      - name: product_id
-        role: primary_key
-        description: 商品唯一标识。
-        alias: [商品ID, 产品ID]
-        sync: false
-
-      - name: product_name
-        role: dimension
-        description: 商品名称。
-        alias: [商品名称, 产品名称]
-        sync: true
-
-      - name: category
-        role: dimension
-        description: 商品所属品类。
-        alias: [商品类别, 品类, 分类]
-        sync: true
-
-      - name: brand
-        role: dimension
-        description: 商品品牌名称。
-        alias: [品牌, 品牌名称]
-        sync: true
-
-  - name: dim_date
-    role: dim
-    description: 时间维度表，用于多时间粒度分析。
-    columns:
-      - name: date_id
-        role: primary_key
-        description: 日期唯一标识，格式 yyyyMMdd。
-        alias: [日期ID, 日期]
-        sync: false
-
-      - name: year
-        role: dimension
-        description: 年份。
-        alias: [年, 年份]
-        sync: false
-
-      - name: quarter
-        role: dimension
-        description: 季度。
-        alias: [季度]
-        sync: true
-
-      - name: month
-        role: dimension
-        description: 月份。
-        alias: [月, 月份]
-        sync: false
-
-      - name: day
-        role: dimension
-        description: 日。
-        alias: [日, 天]
-        sync: false
-
-  - name: fact_order
+  - name: fact_match
     role: fact
-    description: 订单事实表，记录订单数量和金额等核心指标。
+    description: 对局事实表，一局王牌对决一行，6 人同场，赛前禁用一个阵营，统计对局量和禁用率时用这张表。
     columns:
-      - name: order_id
+      - name: match_id
         role: primary_key
-        description: 订单唯一标识。
-        alias: [订单ID]
+        description: 对局编号，格式为日期加时间，如 20261019-1700。
+        alias: [对局编号, 对局ID]
         sync: false
 
-      - name: customer_id
+      - name: match_date
+        role: dimension
+        description: 对局日期，可按日分组看对局量趋势。
+        alias: [对局日期, 日期, 比赛日期]
+        sync: false
+
+      - name: banned_faction
+        role: dimension
+        description: 本场赛前禁用的阵营名称，未禁用时为空。
+        alias: [禁用阵营, 被禁阵营, ban位, 禁阵营]
+        sync: true
+
+  - name: fact_match_player
+    role: fact
+    description: 对局玩家明细事实表，每局每位玩家一行，记录主公选择与最终名次，吃鸡率前三率等胜率类指标都在这张表上聚合。
+    columns:
+      - name: match_id
         role: foreign_key
-        description: 关联客户维度的外键。
-        alias: [客户ID, 用户ID]
+        description: 关联对局事实表的外键，用于按禁用阵营等对局条件过滤。
+        alias: [对局编号, 对局ID]
         sync: false
 
-      - name: product_id
-        role: foreign_key
-        description: 关联商品维度的外键。
-        alias: [商品ID, 产品ID]
+      - name: seat
+        role: dimension
+        description: 座位号 1-6。
+        alias: [座位号, 座位]
         sync: false
 
-      - name: date_id
-        role: foreign_key
-        description: 关联时间维度的外键。
-        alias: [日期, 下单日期]
-        sync: false
+      - name: player_name
+        role: dimension
+        description: 玩家昵称，如小祥、世薄情。
+        alias: [玩家, 玩家昵称, 昵称]
+        sync: true
 
-      - name: region_id
-        role: foreign_key
-        description: 关联地区维度的外键。
-        alias: [地区ID, 区域ID]
-        sync: false
+      - name: lord_name
+        role: dimension
+        description: 该玩家本局选用的主公，分析主公强度时按这一列分组。
+        alias: [主公, 使用主公, 所选主公]
+        sync: true
 
-      - name: order_quantity
+      - name: final_place
         role: measure
-        description: 订单中商品的购买数量。
-        alias: [销量, 购买数量, 件数]
-        sync: false
-
-      - name: order_amount
-        role: measure
-        description: 订单金额。
-        alias: [销售额, 订单金额, 收入]
+        description: 最终名次 1-6，1 为冠军俗称吃鸡，前 3 名算上分；算平均名次时数值越小成绩越好。
+        alias: [名次, 最终名次, 排名, 最终排名]
         sync: false
 
 metrics:
-  - name: GMV
-    description: 全称Gross Merchandise Value，表示所有订单的成交金额总和。
+  - name: 吃鸡率
+    description: 夺冠占比，口径为 sum(final_place=1)/count(*)，在 fact_match_player 上按主公或玩家分组计算；样本场次少时结论不稳，建议同时返回场次。
     relevant_columns:
-      - fact_order.order_amount
-    alias: [成交总额, 订单总额]
-  - name: AOV
-    description: 全称Average Order Value，表示所有订单的成交金额平均值。
+      - fact_match_player.final_place
+    alias: [胜率, 夺冠率, 冠军率, 吃鸡概率, 登顶率]
+
+  - name: 前三率
+    description: 打进前 3 的占比，口径为 sum(final_place<=3)/count(*)，前 3 名即上分。
     relevant_columns:
-      - fact_order.order_quantity
-    alias: [平均单价, 平均订单金额]
+      - fact_match_player.final_place
+    alias: [前3率, 上分率, 前三占比, 上分概率]
+
+  - name: 平均名次
+    description: 场均最终名次，口径为 avg(final_place)，数值越小成绩越好。
+    relevant_columns:
+      - fact_match_player.final_place
+    alias: [场均名次, 平均排名, 名次均值]
+
+  - name: 登场次数
+    description: 主公或玩家的出场场次，口径为 count(*)，在 fact_match_player 上分组统计。
+    relevant_columns:
+      - fact_match_player.match_id
+    alias: [场次, 出场次数, 出场数, pick次数]
+
+  - name: 禁用率
+    description: 某阵营被禁用的对局占比，口径为 count(banned_faction=该阵营)/count(*)，在 fact_match 上统计。
+    relevant_columns:
+      - fact_match.banned_faction
+    alias: [被禁率, ban率, 禁用占比]
+
+  - name: 对局数
+    description: 对局总量，口径为 count(*)，在 fact_match 上统计，可按日期分组看趋势。
+    relevant_columns:
+      - fact_match.match_id
+    alias: [局数, 对局数量, 总场次]

@@ -7,8 +7,21 @@
 SQL 生成闭环中的数据库环境读取 SQL 校验和最终查询执行也集中放在这里
 """
 
+from datetime import date, datetime
+from decimal import Decimal
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def _to_json_safe(value):
+    """把数据库返回值转成可安全写入 JSON 列的基础类型"""
+    # 日期类型序列化成 ISO 字符串，decimal 转浮点数，其余类型原样返回
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
 
 
 class DWMySQLRepository:
@@ -30,7 +43,8 @@ class DWMySQLRepository:
         """抽样查询字段示例值，供元数据入库和后续检索链路复用"""
         sql = f"select distinct {column_name} from {table_name} limit {limit}"
         result = await self.session.execute(text(sql))
-        return [row[0] for row in result.fetchall()]
+        # 示例值最终要写入 column_info 的 JSON 列，日期等类型必须先转成基础类型
+        return [_to_json_safe(row[0]) for row in result.fetchall()]
 
     async def get_db_info(self):
         """读取当前数仓数据库的方言和版本，供 SQL 生成提示词使用"""

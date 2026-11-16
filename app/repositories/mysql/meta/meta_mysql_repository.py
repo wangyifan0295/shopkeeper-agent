@@ -8,7 +8,7 @@ Repository 自身只关心“如何写入”，而“哪些写操作要放在同
 问数链路运行时也会从这里读取元数据，用来把召回到的 id 补齐成完整实体
 """
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.entities.column_info import ColumnInfo
@@ -28,6 +28,15 @@ class MetaMySQLRepository:
 
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def reset_all(self):
+        """清空全部元数据表，供知识库全量重建前清理旧数据使用"""
+        # save_* 都只是追加写入，换数据域重新构建前若不清理，
+        # 旧表旧字段的元数据会残留下来污染后续的召回结果
+        for table_name in ("table_info", "column_info", "metric_info", "column_metric"):
+            await self.session.execute(text(f"TRUNCATE TABLE {table_name}"))
+        # TRUNCATE 在 MySQL 里属于 DDL 会隐式提交，这里显式提交收尾保持写法统一
+        await self.session.commit()
 
     def save_table_infos(self, table_infos: list[TableInfo]):
         """批量保存表元数据。输入仍然是业务实体，而不是 ORM 模型"""

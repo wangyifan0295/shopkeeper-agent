@@ -34,6 +34,12 @@ class MetricQdrantRepository:
                 ),
             )
 
+    async def drop_collection(self):
+        """删除整个指标向量集合，供知识库全量重建前清理旧数据使用"""
+        # 只在集合确实存在时才删除，空库首次构建也不会报错
+        if await self.client.collection_exists(self.collection_name):
+            await self.client.delete_collection(self.collection_name)
+
     async def upsert(
         self,
         ids: list[str],
