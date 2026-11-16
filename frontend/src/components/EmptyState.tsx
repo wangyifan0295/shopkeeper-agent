@@ -2,7 +2,7 @@
  * 首页空状态组件
  * 展示产品入口信息和可点击的示例问数问题
  */
-import { LineChart, Search, ShoppingBag, Sparkles } from "lucide-react";
+import { LineChart, Search, Sparkles, Swords } from "lucide-react";
 
 type EmptyStateProps = {
   examples: string[];
@@ -12,7 +12,7 @@ type EmptyStateProps = {
 const highlights = [
   { label: "混合检索", icon: Search },
   { label: "SQL 闭环", icon: LineChart },
-  { label: "电商数仓", icon: ShoppingBag },
+  { label: "对局数仓", icon: Swords },
 ];
 
 export function EmptyState({ examples, onUseExample }: EmptyStateProps) {
@@ -24,7 +24,7 @@ export function EmptyState({ examples, onUseExample }: EmptyStateProps) {
           Shopkeeper Agent
         </div>
         <h1 className="text-balance text-4xl font-semibold leading-tight text-ink sm:text-6xl">
-          电商问数
+          万象棋问数
         </h1>
       </div>
 
