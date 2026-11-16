@@ -11,6 +11,8 @@
     "lint": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
+    "@ag-ui/client": "^1.0.4",
+    "@ag-ui/core": "^1.0.4",
     "@vitejs/plugin-react": "^5.1.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",

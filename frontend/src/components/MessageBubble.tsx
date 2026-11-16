@@ -57,6 +57,17 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           {!isUser && <StepRail steps={message.steps} />}
           {!isUser && message.result !== undefined && <ResultTable data={message.result} />}
 
+          {!isUser && message.stateSnapshot !== undefined && (
+            <details className="mt-3 border border-ink/10 bg-ink/[0.03]">
+              <summary className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium text-ink/55">
+                AG-UI 状态快照（STATE_SNAPSHOT）
+              </summary>
+              <pre className="max-h-64 overflow-auto px-3 pb-3 text-[11px] leading-5 text-ink/70">
+                {JSON.stringify(message.stateSnapshot, null, 2)}
+              </pre>
+            </details>
+          )}
+
           <div
             className={cn(
               "mt-3 text-xs",

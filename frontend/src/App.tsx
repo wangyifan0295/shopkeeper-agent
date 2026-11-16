@@ -15,8 +15,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "./components/Composer";
 import { EmptyState } from "./components/EmptyState";
 import { MessageBubble } from "./components/MessageBubble";
-import { streamQuery } from "./lib/agentApi";
-import { cn, summarizeResult } from "./lib/format";
+import type { HttpAgent } from "@ag-ui/client";
+import { runAgUiQuery } from "./lib/agUiApi";
+import { cn } from "./lib/format";
 import type { AgentEvent, ChatMessage, StepState } from "./types/agent";
 
 const examples = [
@@ -45,10 +46,12 @@ function upsertStep(steps: StepState[] = [], event: Extract<AgentEvent, { type: 
 export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [activeController, setActiveController] = useState<AbortController | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const isStreaming = Boolean(activeController);
+  // 持有当前 HttpAgent 实例，停止按钮通过它中断请求
+  const activeAgentRef = useRef<HttpAgent | null>(null);
+
   const canSubmit = draft.trim().length > 0 && !isStreaming;
 
   const completedCount = useMemo(
@@ -84,8 +87,7 @@ export default function App() {
       steps: [],
     };
 
-    const controller = new AbortController();
-    setActiveController(controller);
+    setIsStreaming(true);
     setDraft("");
     setMessages((current) => [...current, userMessage, assistantMessage]);
 
@@ -106,9 +108,21 @@ export default function App() {
             return {
               ...message,
               status: "done",
-              content: summarizeResult(event.data),
+              // 结果摘要由随后的标准文本消息事件负责，这里保留进行中的文案
+              content: message.content,
               result: event.data,
             };
+          }
+
+          if (event.type === "text") {
+            // 服务端文本消息在结果事件之后到达，作为最终文案；流式中则直接追加
+            const base = message.result !== undefined ? "" : message.content;
+            return { ...message, content: base + event.delta };
+          }
+
+          if (event.type === "state") {
+            // STATE_SNAPSHOT 持续覆盖，气泡底部可展开查看最新状态
+            return { ...message, stateSnapshot: event.snapshot };
           }
 
           return {
@@ -122,7 +136,12 @@ export default function App() {
     };
 
     try {
-      await streamQuery(query, { signal: controller.signal, onEvent });
+      await runAgUiQuery(query, {
+        onEvent,
+        onAgent: (agent) => {
+          activeAgentRef.current = agent;
+        },
+      });
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantId && message.status === "streaming"
@@ -131,7 +150,9 @@ export default function App() {
         ),
       );
     } catch (error) {
-      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      const isAbort =
+        (error instanceof DOMException && error.name === "AbortError") ||
+        (error instanceof Error && error.name === "AbortError");
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantId
@@ -145,12 +166,14 @@ export default function App() {
         ),
       );
     } finally {
-      setActiveController(null);
+      activeAgentRef.current = null;
+      setIsStreaming(false);
     }
   };
 
   const stopQuery = () => {
-    activeController?.abort();
+    // 通过 HttpAgent 自带的 abortRun 中断当前请求
+    activeAgentRef.current?.abortRun();
   };
 
   const clearConversation = () => {
@@ -238,7 +261,7 @@ export default function App() {
               </div>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-ink">智能数据分析 Agent</div>
-                <div className="truncate text-xs text-ink/45">FastAPI SSE / LangGraph</div>
+                <div className="truncate text-xs text-ink/45">AG-UI 协议 / LangGraph</div>
               </div>
             </div>
             <button

@@ -20,7 +20,24 @@ export type ErrorEvent = {
   message: string;
 };
 
-export type AgentEvent = ProgressEvent | ResultEvent | ErrorEvent;
+/** AG-UI 标准文本消息增量，来自 TEXT_MESSAGE_CONTENT 事件 */
+export type TextEvent = {
+  type: "text";
+  delta: string;
+};
+
+/** AG-UI 状态快照事件，携带图执行到当前超步的累积状态 */
+export type StateSnapshotAgentEvent = {
+  type: "state";
+  snapshot: unknown;
+};
+
+export type AgentEvent =
+  | ProgressEvent
+  | ResultEvent
+  | ErrorEvent
+  | TextEvent
+  | StateSnapshotAgentEvent;
 
 export type StepState = {
   step: string;
@@ -37,4 +54,6 @@ export type ChatMessage = {
   steps?: StepState[];
   result?: unknown;
   error?: string;
+  // AG-UI 协议下最新一次 STATE_SNAPSHOT 的状态内容
+  stateSnapshot?: unknown;
 };

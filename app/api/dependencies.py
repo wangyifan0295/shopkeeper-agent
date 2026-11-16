@@ -24,7 +24,7 @@ from app.repositories.mysql.dw.dw_mysql_repository import DWMySQLRepository
 from app.repositories.mysql.meta.meta_mysql_repository import MetaMySQLRepository
 from app.repositories.qdrant.column_qdrant_repository import ColumnQdrantRepository
 from app.repositories.qdrant.metric_qdrant_repository import MetricQdrantRepository
-from app.services.query_service import QueryService
+from app.services.agui_query_service import AGuiQueryService
 
 
 async def get_meta_session():
@@ -82,7 +82,7 @@ async def get_value_es_repository() -> ValueESRepository:
     return ValueESRepository(es_client_manager.client)
 
 
-async def get_query_service(
+async def get_agui_query_service(
     meta_mysql_repository: Annotated[
         MetaMySQLRepository, Depends(get_meta_mysql_repository)
     ],
@@ -97,11 +97,11 @@ async def get_query_service(
         MetricQdrantRepository, Depends(get_metric_qdrant_repository)
     ],
     value_es_repository: Annotated[ValueESRepository, Depends(get_value_es_repository)],
-) -> QueryService:
+) -> AGuiQueryService:
     """组装一次查询所需的业务服务"""
 
-    # QueryService 只接收已经创建好的依赖对象，本身不关心这些对象来自 MySQL、Qdrant 还是 ES
-    return QueryService(
+    # AGuiQueryService 只接收已经创建好的依赖对象，本身不关心这些对象来自 MySQL、Qdrant 还是 ES
+    return AGuiQueryService(
         meta_mysql_repository=meta_mysql_repository,
         embedding_client=embedding_client,
         dw_mysql_repository=dw_mysql_repository,
