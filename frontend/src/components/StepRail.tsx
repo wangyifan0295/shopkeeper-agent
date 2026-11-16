@@ -1,56 +1,49 @@
 /**
  * 智能体执行流程图组件
- * 按 LangGraph 节点拓扑展示各步骤状态
+ * 把 LangGraph 的细粒度节点归并成三个主阶段，横向紧凑展示
  */
-import { Check, Circle, LoaderCircle, X } from "lucide-react";
+import { Check, ChevronRight, Circle, LoaderCircle, X } from "lucide-react";
+import { Fragment } from "react";
 import { cn } from "../lib/format";
 import type { ProgressStatus, StepState } from "../types/agent";
 
-type FlowStatus = ProgressStatus | "pending";
+type PhaseStatus = ProgressStatus | "pending";
 
-type FlowNode = {
-  step: string;
-  x: number;
-  y: number;
-  w?: number;
+type Phase = {
+  name: string;
+  // 该阶段聚合的全部底层节点，用于错误检测和进行中判断
+  members: string[];
+  // 标志该阶段完成的节点；生成SQL 以校验通过为准，校正SQL 成功同样视为完成
+  finalSteps: string[];
 };
 
-const nodes: FlowNode[] = [
-  { step: "抽取关键词", x: 410, y: 20 },
-  { step: "召回字段信息", x: 150, y: 112 },
-  { step: "召回指标信息", x: 410, y: 112 },
-  { step: "召回字段取值", x: 670, y: 112 },
-  { step: "合并召回信息", x: 410, y: 214 },
-  { step: "过滤指标信息", x: 290, y: 318 },
-  { step: "过滤表信息", x: 530, y: 318 },
-  { step: "添加额外上下文", x: 410, y: 422, w: 176 },
-  { step: "生成SQL", x: 410, y: 526 },
-  { step: "校验SQL", x: 410, y: 630 },
-  { step: "校正SQL", x: 670, y: 630 },
-  { step: "执行SQL", x: 410, y: 724 },
-];
-
-const connectors = [
-  "M410 60 L410 84 L150 84 L150 106",
-  "M410 60 L410 106",
-  "M410 60 L410 84 L670 84 L670 106",
-  "M150 152 L150 178 L410 178 L410 208",
-  "M410 152 L410 208",
-  "M670 152 L670 178 L410 178 L410 208",
-  "M410 254 L410 282 L290 282 L290 312",
-  "M410 254 L410 282 L530 282 L530 312",
-  "M290 358 L290 386 L410 386 L410 416",
-  "M530 358 L530 386 L410 386 L410 416",
-  "M410 462 L410 520",
-  "M410 566 L410 624",
-  "M410 670 L410 718",
-  "M488 650 L586 650",
-  "M670 670 L670 696 L410 696 L410 718",
-];
-
-const branchLabels = [
-  { text: "有误", x: 530, y: 642 },
-  { text: "无误", x: 366, y: 704 },
+// 三个主阶段覆盖原来的十二个节点：检索分析（抽取+三路召回+合并+双过滤+补上下文）
+// 生成SQL（生成+校验+校正）执行查询（执行SQL）
+const phases: Phase[] = [
+  {
+    name: "检索分析",
+    members: [
+      "抽取关键词",
+      "召回字段信息",
+      "召回指标信息",
+      "召回字段取值",
+      "合并召回信息",
+      "过滤指标信息",
+      "过滤表信息",
+      "添加额外上下文",
+    ],
+    finalSteps: ["添加额外上下文"],
+  },
+  {
+    name: "生成SQL",
+    members: ["生成SQL", "校验SQL", "校正SQL"],
+    finalSteps: ["校验SQL", "校正SQL"],
+  },
+  {
+    name: "执行查询",
+    members: ["执行SQL"],
+    finalSteps: ["执行SQL"],
+  },
 ];
 
 function getStatusMap(steps: StepState[]) {
@@ -60,11 +53,26 @@ function getStatusMap(steps: StepState[]) {
   }, {});
 }
 
-function statusFor(step: string, map: Record<string, StepState>): FlowStatus {
-  return map[step]?.status ?? "pending";
+function phaseStatus(phase: Phase, map: Record<string, StepState>): PhaseStatus {
+  // 校验SQL 的 error 是可恢复的：校验失败会转给校正SQL 兜底，
+  // 所以只有校正SQL 也失败时才判定阶段失败
+  const failedMember = phase.members.find((step) => {
+    if (map[step]?.status !== "error") return false;
+    return !(step === "校验SQL" && map["校正SQL"]?.status === "success");
+  });
+  if (failedMember) return "error";
+
+  // 标志节点任一成功即视为阶段完成（生成SQL 走校正分支时以校正成功为准）
+  if (phase.finalSteps.some((step) => map[step]?.status === "success")) {
+    return "success";
+  }
+
+  // 有成员在跑或已有事件到达，说明阶段进行中
+  const started = phase.members.some((step) => map[step] !== undefined);
+  return started ? "running" : "pending";
 }
 
-function NodeIcon({ status }: { status: FlowStatus }) {
+function NodeIcon({ status }: { status: PhaseStatus }) {
   if (status === "running") {
     return <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />;
   }
@@ -80,36 +88,29 @@ function NodeIcon({ status }: { status: FlowStatus }) {
   return <Circle className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
-function FlowNodeCard({ node, status }: { node: FlowNode; status: FlowStatus }) {
-  const width = node.w ?? 156;
-
+function PhaseCard({ name, status }: { name: string; status: PhaseStatus }) {
   return (
     <div
-      className="absolute -translate-x-1/2"
-      style={{ left: node.x, top: node.y, width }}
+      className={cn(
+        "flex h-10 shrink-0 items-center gap-2 border px-3 text-sm font-semibold shadow-line transition",
+        status === "pending" && "border-ink/10 bg-white/55 text-ink/45",
+        status === "running" && "border-brass/45 bg-brass/15 text-ink",
+        status === "success" && "border-moss/25 bg-moss/10 text-ink",
+        status === "error" && "border-tomato/35 bg-tomato/10 text-tomato",
+      )}
     >
-      <div
+      <span
         className={cn(
-          "flex h-10 items-center gap-2 border px-3 text-sm font-semibold shadow-line transition",
-          status === "pending" && "border-ink/10 bg-white/55 text-ink/45",
-          status === "running" && "border-brass/45 bg-brass/15 text-ink",
-          status === "success" && "border-moss/25 bg-moss/10 text-ink",
-          status === "error" && "border-tomato/35 bg-tomato/10 text-tomato",
+          "grid h-6 w-6 shrink-0 place-items-center rounded-full",
+          status === "pending" && "bg-ink/5 text-ink/35",
+          status === "running" && "bg-brass/20 text-brass",
+          status === "success" && "bg-moss/15 text-moss",
+          status === "error" && "bg-tomato/15 text-tomato",
         )}
       >
-        <span
-          className={cn(
-            "grid h-6 w-6 shrink-0 place-items-center rounded-full",
-            status === "pending" && "bg-ink/5 text-ink/35",
-            status === "running" && "bg-brass/20 text-brass",
-            status === "success" && "bg-moss/15 text-moss",
-            status === "error" && "bg-tomato/15 text-tomato",
-          )}
-        >
-          <NodeIcon status={status} />
-        </span>
-        <span className="min-w-0 flex-1 truncate">{node.step}</span>
-      </div>
+        <NodeIcon status={status} />
+      </span>
+      <span className="whitespace-nowrap">{name}</span>
     </div>
   );
 }
@@ -126,57 +127,19 @@ export function StepRail({ steps = [] }: { steps?: StepState[] }) {
         <div className="text-xs text-ink/45">LangGraph</div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="relative mx-auto h-[780px] w-[820px]">
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            viewBox="0 0 820 780"
-            fill="none"
-            aria-hidden="true"
-          >
-            <defs>
-              <marker
-                id="flow-arrow"
-                markerHeight="8"
-                markerWidth="8"
-                orient="auto"
-                refX="6"
-                refY="4"
-              >
-                <path d="M0 0 L8 4 L0 8 Z" fill="rgba(32,32,29,0.58)" />
-              </marker>
-            </defs>
-            {connectors.map((path) => (
-              <path
-                key={path}
-                d={path}
-                stroke="rgba(32,32,29,0.5)"
-                strokeWidth="1.5"
-                markerEnd="url(#flow-arrow)"
+      {/* 主阶段横向排列，窄屏时可以横向滚动，不再占用整屏高度 */}
+      <div className="flex items-center gap-2 overflow-x-auto px-1 py-1">
+        {phases.map((phase, index) => (
+          <Fragment key={phase.name}>
+            {index > 0 && (
+              <ChevronRight
+                className="h-4 w-4 shrink-0 text-ink/35"
+                aria-hidden="true"
               />
-            ))}
-            {branchLabels.map((label) => (
-              <text
-                key={label.text}
-                x={label.x}
-                y={label.y}
-                fill="rgba(32,32,29,0.62)"
-                fontSize="13"
-                fontWeight="600"
-              >
-                {label.text}
-              </text>
-            ))}
-          </svg>
-
-          {nodes.map((node) => (
-            <FlowNodeCard
-              key={node.step}
-              node={node}
-              status={statusFor(node.step, statusMap)}
-            />
-          ))}
-        </div>
+            )}
+            <PhaseCard name={phase.name} status={phaseStatus(phase, statusMap)} />
+          </Fragment>
+        ))}
       </div>
     </section>
   );
