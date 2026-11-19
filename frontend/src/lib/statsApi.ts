@@ -4,6 +4,7 @@
  */
 import type {
   LordStatRow,
+  MatchesPage,
   PlayerDetail,
   PlayersPage,
   PlayerSortBy,
@@ -50,4 +51,21 @@ export function fetchPlayerDetail(player: string): Promise<PlayerDetail> {
 /** 拉取棋手榜全量列表（按吃鸡率降序） */
 export function fetchLords(): Promise<{ rows: LordStatRow[] }> {
   return requestJson(`${BASE_URL}/lords`);
+}
+
+export type MatchesPageParams = {
+  search: string;
+  faction: string;
+  page: number;
+  pageSize: number;
+};
+
+/** 拉取对局记录一页：每场含六人明细，另返回阵营下拉真值 */
+export function fetchMatchesPage(params: MatchesPageParams): Promise<MatchesPage> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.faction) query.set("faction", params.faction);
+  query.set("page", String(params.page));
+  query.set("page_size", String(params.pageSize));
+  return requestJson(`${BASE_URL}/matches?${query.toString()}`);
 }

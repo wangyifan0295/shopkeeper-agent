@@ -58,6 +58,26 @@ async def get_player_handler(
     return detail
 
 
+@stats_router.get("/api/stats/matches")
+async def list_matches_handler(
+    stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
+    # 选手名模糊搜索：命中该场六人中任一人即返回整场
+    search: Annotated[str, Query(description="选手名模糊搜索")] = "",
+    # 禁用阵营精确匹配，空串表示不过滤
+    faction: Annotated[str, Query(description="禁用阵营")] = "",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营下拉真值"""
+
+    return await stats_repository.list_matches(
+        search=search.strip(),
+        faction=faction.strip(),
+        page=page,
+        page_size=page_size,
+    )
+
+
 @stats_router.get("/api/stats/lords")
 async def list_lords_handler(
     stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],

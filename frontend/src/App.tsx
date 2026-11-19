@@ -8,13 +8,14 @@ import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatView } from "./views/ChatView";
 import { LordsView } from "./views/LordsView";
+import { MatchesView } from "./views/MatchesView";
 import { PlayerDetailView } from "./views/PlayerDetailView";
 import { PlayersView } from "./views/PlayersView";
 import { useChatSession } from "./hooks/useChatSession";
 import { cn } from "./lib/format";
 import type { AppView, NavView } from "./types/view";
 
-// 窄屏导航条：侧栏在 lg 以下隐藏，这三个入口保证视图始终可达
+// 窄屏导航条：侧栏在 lg 以下隐藏时的视图入口（对局记录按用户要求暂不加移动端入口）
 const NAV_ITEMS: Array<{ view: NavView; label: string; icon: typeof Users }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
   { view: "players", label: "选手榜", icon: Users },
@@ -24,17 +25,37 @@ const NAV_ITEMS: Array<{ view: NavView; label: string; icon: typeof Users }> = [
 export default function App() {
   const [view, setView] = useState<AppView>("chat");
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  // 选手详情从哪来就回哪去：从对局记录点入时，返回按钮带筛选回对局页
+  const [detailOrigin, setDetailOrigin] = useState<NavView>("players");
+  // 选手详情"查看对局"带给对局页的预置选手名筛选
+  const [matchesPreset, setMatchesPreset] = useState<string | null>(null);
   const chat = useChatSession();
 
   const navigate = (next: NavView) => {
-    // 导航只会去三个主视图，选中态随之清空，选手详情必须重新从选手榜点入
+    // 导航进入的是全新上下文：清空选中态与对局预置筛选
     setSelectedPlayer(null);
+    setMatchesPreset(null);
     setView(next);
   };
 
   const openPlayerDetail = (player: string) => {
+    setDetailOrigin(view === "matches" ? "matches" : "players");
     setSelectedPlayer(player);
     setView("player-detail");
+  };
+
+  // 从选手详情返回：来处是对局记录时保留其筛选直接回去（绕过 navigate 的清空）
+  const backFromDetail = () => {
+    if (detailOrigin === "matches") {
+      setView("matches");
+    } else {
+      navigate("players");
+    }
+  };
+
+  const openMatchesFor = (player: string) => {
+    setMatchesPreset(player);
+    setView("matches");
   };
 
   const activeNav: NavView = view === "player-detail" ? "players" : view;
@@ -80,11 +101,21 @@ export default function App() {
         {view === "players" && <PlayersView onSelectPlayer={openPlayerDetail} />}
         {view === "player-detail" &&
           (selectedPlayer ? (
-            <PlayerDetailView player={selectedPlayer} onBack={() => navigate("players")} />
+            <PlayerDetailView
+              player={selectedPlayer}
+              onBack={backFromDetail}
+              onBrowseMatches={openMatchesFor}
+            />
           ) : (
             <PlayersView onSelectPlayer={openPlayerDetail} />
           ))}
         {view === "lords" && <LordsView />}
+        {view === "matches" && (
+          <MatchesView
+            presetSearch={matchesPreset ?? undefined}
+            onSelectPlayer={openPlayerDetail}
+          />
+        )}
       </div>
     </div>
   );

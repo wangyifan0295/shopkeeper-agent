@@ -8,11 +8,10 @@ import {
   ArrowLeftRight,
   ArrowUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Pagination } from "../components/Pagination";
 import { WinRate } from "../components/WinRate";
 import { fetchPlayersPage } from "../lib/statsApi";
 import { cn } from "../lib/format";
@@ -277,37 +276,15 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
                 </table>
               </div>
 
-              {/* 分页器：total 由服务端返回，翻页重新请求 */}
-              <div className="mt-4 flex items-center justify-between text-sm text-muted">
-                <div className="flex items-center gap-3">
-                  <span className="num">
-                    第 {data.page} / {totalPages} 页
-                  </span>
-                  <span aria-hidden="true" className="h-3 w-px bg-rule" />
-                  <span className="num">每页 {data.page_size} 条</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    disabled={data.page <= 1 || loading}
-                    className="icon-btn"
-                    title="上一页"
-                    aria-label="上一页"
-                  >
-                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                    disabled={data.page >= totalPages || loading}
-                    className="icon-btn"
-                    title="下一页"
-                    aria-label="下一页"
-                  >
-                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
+              {/* 分页器：total 由服务端返回，翻页重新请求；跳页输入框直达任意页 */}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="num text-sm text-muted">每页 {data.page_size} 条</span>
+                <Pagination
+                  page={data.page}
+                  totalPages={totalPages}
+                  disabled={loading}
+                  onChange={setPage}
+                />
               </div>
 
               <p className="label mt-6 leading-5">

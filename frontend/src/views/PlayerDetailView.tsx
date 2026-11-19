@@ -3,7 +3,7 @@
  * 总指标一行（竖向细线分隔的对比数字行）+ 分棋手胜率表。
  * 吃鸡率是主角：更大的衬线数字，下压它的热坡条
  */
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Swords } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WinRate } from "../components/WinRate";
 import { fetchPlayerDetail } from "../lib/statsApi";
@@ -13,9 +13,10 @@ import type { PlayerDetail } from "../types/stats";
 type PlayerDetailViewProps = {
   player: string;
   onBack: () => void;
+  onBrowseMatches: (player: string) => void;
 };
 
-export function PlayerDetailView({ player, onBack }: PlayerDetailViewProps) {
+export function PlayerDetailView({ player, onBack, onBrowseMatches }: PlayerDetailViewProps) {
   const [detail, setDetail] = useState<PlayerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,10 +56,21 @@ export function PlayerDetailView({ player, onBack }: PlayerDetailViewProps) {
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-rule px-4 lg:px-6">
         <button type="button" onClick={onBack} className="btn btn-quiet shrink-0">
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          返回选手榜
+          返回
         </button>
         <h1 className="min-w-0 truncate font-display text-lg">{player}</h1>
-        <p className="label hidden shrink-0 sm:block">选手详情</p>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onBrowseMatches(player)}
+            className="btn btn-quiet"
+            title={`筛选 ${player} 参加的对局`}
+          >
+            <Swords className="h-3.5 w-3.5" aria-hidden="true" />
+            查看对局
+          </button>
+          <p className="label hidden sm:block">选手详情</p>
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

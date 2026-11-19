@@ -50,3 +50,29 @@ export type PlayerDetail = PlayerStatRow & {
 export type PlayerSortBy = "matches" | "win_rate" | "top3_rate" | "avg_place";
 
 export type SortOrder = "asc" | "desc";
+
+/** 对局六人明细行：按名次升序 */
+export type MatchPlayerRow = {
+  place: number;
+  player: string;
+  lord: string;
+};
+
+/** 对局记录行：一场对局 + 冠军信息 + 六人明细 */
+export type MatchRow = {
+  match_id: string;
+  match_date: string;
+  banned_faction: string;
+  champion_player: string | null;
+  champion_lord: string | null;
+  players: MatchPlayerRow[];
+};
+
+/** 对局记录分页响应：factions 是禁用阵营下拉的真值（来自 dim_faction） */
+export type MatchesPage = {
+  rows: MatchRow[];
+  total: number;
+  page: number;
+  page_size: number;
+  factions: string[];
+};

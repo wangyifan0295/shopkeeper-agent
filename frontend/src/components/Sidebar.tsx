@@ -6,6 +6,7 @@
 import {
   Crown,
   MessagesSquare,
+  Swords,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV_ITEMS: Array<{ view: NavView; label: string; icon: LucideIcon }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
   { view: "players", label: "选手榜", icon: Users },
   { view: "lords", label: "棋手榜", icon: Crown },
+  { view: "matches", label: "对局记录", icon: Swords },
 ];
 
 type SidebarProps = {
