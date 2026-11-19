@@ -1,62 +1,182 @@
-/**
- * 全局样式入口
- * 加载 Tailwind 层并定义页面基础样式与背景纹理
- */
+/* Hallmark · shape: app screen · genre: atmospheric · theme: Kiln (deal 3/3, seed esports-chess-data-workbench-5afe·7af29040·2026-11-18·r0) · redesign: full
+ * nav: kept, the project's own sidebar shell · signature: 胜率衬线数字（热坡条已按用户要求移除）· states: loading, empty, error, full · kiln: ember
+ * axes: dark/high-contrast-serif/warm · posture: full-palette · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S3 R4 V4 · weakest: S, a win-rate table could be any dashboard; fixed by the kiln ramp keyed to the number itself and serif figures */
+/* Hallmark · dropped onUseExample={(example) => chat.setDraft(example)} · finish review 4 号发现：空态示例与侧栏示例同貌不同行为，统一为立即发问 startQuery，setDraft 仍由输入框 onChange 使用 */
+@import "./tokens.css";
+@import "./base.css" layer(base);
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    color-scheme: light;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
+@layer components {
+  /* 吸烟井：比地面高一档的容器，1px 规则边，无阴影 */
+  .well {
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-well);
+  }
 
-* {
-    box-sizing: border-box;
-}
+  /* 标签：正文字体小一号，句首大写，不加字距（67） */
+  .label {
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+  }
 
-html,
-body,
-#root {
-    height: 100%;
-}
+  /* 数据数字：正文面的等宽表格数字，500 字重，读数干净（衬线只留给标题） */
+  .figure {
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: 0;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
 
-body {
-    margin: 0;
-    background: #f7f1e8;
-    overflow: hidden;
-}
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
 
-button,
-textarea {
-    font: inherit;
-}
+  /* 控件基座：app 密度 36px，胶囊外形，八态齐全（26a/26b/39a） */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 36px;
+    padding: 0 var(--space-md);
+    border: none;
+    border-radius: var(--radius-pill);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--dur-short) var(--ease-out),
+      color var(--dur-short) var(--ease-out),
+      box-shadow var(--dur-short) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled, .btn[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 
-::selection {
-    background: rgba(47, 107, 79, 0.2);
-}
+  /* 余烬主操作：全场唯一填充主按钮配方（F4） */
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--color-focus); }
+  .btn-primary:active:not(:disabled) { background: var(--color-accent); }
 
-.grain {
-    opacity: 0.32;
-    background-image: radial-gradient(
-        circle at 1px 1px,
-        rgba(32, 32, 29, 0.18) 1px,
-        transparent 0
-    );
-    background-size: 18px 18px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 72%);
-}
+  /* 幽灵次操作：内嵌 1px 规则环 */
+  .btn-quiet {
+    background: transparent;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 var(--rule-hair) var(--color-rule);
+  }
+  .btn-quiet:hover:not(:disabled) { background: var(--color-paper-2); }
+  .btn-quiet:active:not(:disabled) { background: var(--color-paper-3); }
 
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        scroll-behavior: auto !important;
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+  /* 图标按钮：32px 外形 + 44px 命中区（交互规范） */
+  .icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: background-color var(--dur-short) var(--ease-out),
+      color var(--dur-short) var(--ease-out);
+  }
+  .icon-btn::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: var(--radius-pill);
+  }
+  .icon-btn:hover:not(:disabled) { background: var(--color-paper-2); color: var(--color-ink); }
+  .icon-btn:active:not(:disabled) { background: var(--color-paper-3); }
+  .icon-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .icon-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* 输入井整体焦点环：textarea 自己不画框，焦点落在井上 */
+  .composer-well:focus-within {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* 输入井：边宽恒定，焦点是 inset 轮廓而非边框（39a） */
+  .input {
+    min-height: 36px;
+    padding: 0 var(--space-md);
+    border: var(--rule-hair) solid color-mix(in oklab, var(--color-muted) 55%, transparent);
+    border-radius: var(--radius-well);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    outline: 2px solid transparent;
+    outline-offset: -3px;
+    transition: background-color var(--dur-short) var(--ease-out);
+  }
+  .input::placeholder { color: var(--color-muted); }
+  .input:hover { background: var(--color-paper-3); }
+  .input:focus-visible {
+    outline-color: var(--color-focus);
+    background: var(--color-paper-2);
+  }
+  .input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* 数据表：只有横向规则，无外框无卡片（craft §9） */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--text-sm);
+  }
+  .data-table th {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-muted);
+    white-space: nowrap;
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+  }
+  .data-table td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table .cell-num {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* 骨架屏：加载态给出行形状，脉冲循环在 reduced-motion 下由 base.css 归零 */
+  .skeleton {
+    background: var(--color-paper-2);
+    border-radius: var(--space-sm);
+    animation: skeleton-pulse 1.6s var(--ease-in-out) infinite;
+  }
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
 }

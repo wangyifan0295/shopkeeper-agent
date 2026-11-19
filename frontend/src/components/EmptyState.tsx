@@ -1,52 +1,32 @@
 /**
- * 首页空状态组件
- * 展示产品入口信息和可点击的示例问数问题
+ * 对话空状态组件
+ * 一句窑语开场：衬线大标题、一句话、四条可点的示例问题。
+ * 没有徽章、没有图标瓦片，让标题和问题自己说话
  */
-import { LineChart, Search, Sparkles, Swords } from "lucide-react";
-
 type EmptyStateProps = {
   examples: string[];
   onUseExample: (example: string) => void;
+  disabled?: boolean;
 };
 
-const highlights = [
-  { label: "混合检索", icon: Search },
-  { label: "SQL 闭环", icon: LineChart },
-  { label: "对局数仓", icon: Swords },
-];
-
-export function EmptyState({ examples, onUseExample }: EmptyStateProps) {
+export function EmptyState({ examples, onUseExample, disabled = false }: EmptyStateProps) {
   return (
-    <div className="mx-auto flex min-h-full max-w-5xl flex-col justify-center px-4 py-12">
-      <div className="mb-10 max-w-3xl">
-        <div className="mb-5 inline-flex items-center gap-2 border border-moss/25 bg-moss/10 px-3 py-1.5 text-sm font-semibold text-moss">
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-          Shopkeeper Agent
-        </div>
-        <h1 className="text-balance text-4xl font-semibold leading-tight text-ink sm:text-6xl">
-          万象棋问数
-        </h1>
+    <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center gap-7 px-6 py-12">
+      <div>
+        <h2 className="font-display text-3xl">万象棋问数</h2>
+        <p className="mt-3 text-base leading-relaxed text-ink-2">
+          万象大赛的历史对局都在这里。问一句，或者去侧栏翻榜单。
+        </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {highlights.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="border border-ink/10 bg-white/55 px-4 py-4">
-              <Icon className="mb-5 h-5 w-5 text-brass" aria-hidden="true" />
-              <div className="text-sm font-semibold text-ink">{item.label}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 grid gap-3 md:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {examples.map((example) => (
           <button
             key={example}
             type="button"
             onClick={() => onUseExample(example)}
-            className="min-h-20 border border-ink/10 bg-[#fffaf1]/75 px-4 py-4 text-left text-[15px] leading-6 text-ink transition hover:-translate-y-0.5 hover:border-moss/35 hover:bg-white focus:outline-none focus:ring-2 focus:ring-moss/35"
+            disabled={disabled}
+            className="rounded-well border border-rule px-4 py-3.5 text-left text-sm leading-6 text-ink-2 transition hover:bg-paper-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-55"
           >
             {example}
           </button>

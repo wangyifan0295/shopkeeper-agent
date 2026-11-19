@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 
 from app.api.lifespan import lifespan
 from app.api.routers.agui_router import agui_router
+from app.api.routers.stats_router import stats_router
 from app.core.context import request_id_ctx_var
 
 # lifespan 交给 FastAPI 管理，用于在服务启动和关闭时统一初始化与释放外部客户端
@@ -19,6 +20,9 @@ app = FastAPI(lifespan=lifespan)
 
 # 把 AG-UI 协议查询路由注册进应用；没有挂载时，/docs 和真实 HTTP 请求都访问不到该接口
 app.include_router(agui_router)
+
+# 数据统计只读路由：选手榜 / 选手详情 / 棋手榜，不走 LLM 问数链路
+app.include_router(stats_router)
 
 
 @app.middleware("http")

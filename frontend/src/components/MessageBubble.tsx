@@ -1,8 +1,9 @@
 /**
  * 聊天消息气泡组件
- * 组合展示用户问题、智能体回复、执行流程和结果表格
+ * 组合展示用户问题、智能体回复、执行流程和结果表格。
+ * 用户消息是吸烟井靠右；助手消息落在地面上，让表格与流程条自己撑结构
  */
-import { Bot, Copy, UserRound } from "lucide-react";
+import { Copy } from "lucide-react";
 import { ResultTable } from "./ResultTable";
 import { StepRail } from "./StepRail";
 import { cn, formatTime, toClipboardText } from "../lib/format";
@@ -17,73 +18,48 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   };
 
   return (
-    <article className={cn("group flex gap-3", isUser && "justify-end")}>
-      {!isUser && (
-        <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink text-parchment">
-          <Bot className="h-4 w-4" aria-hidden="true" />
+    <article className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          "group relative",
+          isUser ? "well max-w-[760px] px-5 py-4" : "w-full",
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <p className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</p>
+          {!isUser && message.status !== "streaming" && (
+            <button
+              type="button"
+              onClick={copy}
+              className="icon-btn opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100"
+              title="复制"
+              aria-label="复制"
+            >
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
         </div>
-      )}
 
-      <div className={cn("max-w-[920px] flex-1", isUser && "flex max-w-[760px] justify-end")}>
-        <div
-          className={cn(
-            "relative border px-5 py-4 shadow-line",
-            isUser
-              ? "border-ink/80 bg-ink text-parchment"
-              : "border-ink/10 bg-[#fffaf1]/78 text-ink backdrop-blur",
-          )}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</p>
-            {!isUser && message.status !== "streaming" && (
-              <button
-                type="button"
-                onClick={copy}
-                className="shrink-0 rounded-full p-1.5 text-ink/45 opacity-0 outline-none transition hover:bg-ink/5 hover:text-ink focus:opacity-100 focus:ring-2 focus:ring-moss/40 group-hover:opacity-100"
-                title="复制"
-                aria-label="复制"
-              >
-                <Copy className="h-4 w-4" aria-hidden="true" />
-              </button>
-            )}
+        {message.error && (
+          <div className="mt-3 border-l-2 border-error pl-3 text-sm text-error">
+            {message.error}
           </div>
+        )}
 
-          {message.error && (
-            <div className="mt-3 border border-tomato/30 bg-tomato/10 px-3 py-2 text-sm text-tomato">
-              {message.error}
-            </div>
-          )}
+        {!isUser && <StepRail steps={message.steps} />}
+        {!isUser && message.result !== undefined && <ResultTable data={message.result} />}
 
-          {!isUser && <StepRail steps={message.steps} />}
-          {!isUser && message.result !== undefined && <ResultTable data={message.result} />}
-
-          {!isUser && message.stateSnapshot !== undefined && (
-            <details className="mt-3 border border-ink/10 bg-ink/[0.03]">
-              <summary className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium text-ink/55">
-                AG-UI 状态快照（STATE_SNAPSHOT）
-              </summary>
-              <pre className="max-h-64 overflow-auto px-3 pb-3 text-[11px] leading-5 text-ink/70">
-                {JSON.stringify(message.stateSnapshot, null, 2)}
-              </pre>
-            </details>
-          )}
-
-          <div
-            className={cn(
-              "mt-3 text-xs",
-              isUser ? "text-parchment/55" : "text-ink/45",
-            )}
-          >
-            {formatTime(message.createdAt)}
-          </div>
-        </div>
+        {!isUser && message.stateSnapshot !== undefined && (
+          <details className="mt-4 border-t border-rule pt-3">
+            <summary className="label cursor-pointer select-none">AG-UI 状态快照（STATE_SNAPSHOT）</summary>
+            <pre className="mt-2 max-h-64 overflow-auto font-mono text-xs leading-5 text-muted">
+              {JSON.stringify(message.stateSnapshot, null, 2)}
+            </pre>
+          </details>
+        )}
       </div>
 
-      {isUser && (
-        <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-moss text-white">
-          <UserRound className="h-4 w-4" aria-hidden="true" />
-        </div>
-      )}
+      <time className="mt-1.5 px-1 text-xs text-muted">{formatTime(message.createdAt)}</time>
     </article>
   );
 }

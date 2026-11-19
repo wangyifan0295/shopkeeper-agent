@@ -1,6 +1,7 @@
 /**
  * Tailwind CSS 主题配置
- * 定义前端项目的字体、颜色和阴影扩展
+ * Hallmark Kiln 系统：utilities 全部映射到 tokens.css 的令牌（export-formats v3 规则），
+ * 组件类（.well/.btn/.data-table 等）定义在 styles.css 的 components 层
  */
 import type { Config } from "tailwindcss";
 
@@ -9,27 +10,55 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          '"LXGW WenKai Screen"',
-          '"Noto Sans SC"',
-          '"PingFang SC"',
-          '"Microsoft YaHei"',
-          "sans-serif",
-        ],
-        mono: ['"JetBrains Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
+        display: "var(--font-display)",
+        body: "var(--font-body)",
+        mono: "var(--font-outlier)",
       },
       colors: {
-        parchment: "#f7f1e8",
-        ink: "#20201d",
-        soot: "#2d2925",
-        moss: "#2f6b4f",
-        brass: "#b48638",
-        tomato: "#d64e3a",
-        mist: "#d8ddd2",
+        paper: {
+          DEFAULT: "var(--color-paper)",
+          2: "var(--color-paper-2)",
+          3: "var(--color-paper-3)",
+        },
+        ink: {
+          DEFAULT: "var(--color-ink)",
+          2: "var(--color-ink-2)",
+        },
+        muted: "var(--color-muted)",
+        rule: "var(--color-rule)",
+        accent: {
+          DEFAULT: "var(--color-accent)",
+          ink: "var(--color-accent-ink)",
+        },
+        focus: "var(--color-focus)",
+        error: "var(--color-error)",
+        success: "var(--color-success)",
+        heat: {
+          1: "var(--heat-1)",
+          2: "var(--heat-2)",
+          3: "var(--heat-3)",
+          4: "var(--heat-4)",
+          5: "var(--heat-5)",
+          6: "var(--heat-6)",
+        },
+      },
+      fontSize: {
+        xs: "var(--text-xs)",
+        sm: "var(--text-sm)",
+        base: "var(--text-md)",
+        lg: "var(--text-lg)",
+        xl: "var(--text-xl)",
+        "2xl": "var(--text-2xl)",
+        "3xl": "var(--text-3xl)",
+        figure: "var(--text-figure)",
+      },
+      borderRadius: {
+        well: "var(--radius-well)",
+        card: "var(--radius-card)",
+        pill: "var(--radius-pill)",
       },
       boxShadow: {
-        line: "0 1px 0 rgba(32, 32, 29, 0.08)",
-        panel: "0 24px 70px rgba(45, 41, 37, 0.16)",
+        card: "var(--shadow-card)",
       },
     },
   },

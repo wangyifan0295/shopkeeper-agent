@@ -1,9 +1,10 @@
 /**
  * 聊天输入区组件
- * 处理问题输入、发送和停止当前流式请求
+ * 处理问题输入、发送和停止当前流式请求。
+ * 输入区是一只吸烟井，焦点环落在井上（textarea 自身不画框）
  */
-import { ArrowUp, Square, WandSparkles } from "lucide-react";
-import { FormEvent, KeyboardEvent, useRef } from "react";
+import { ArrowUp, Square } from "lucide-react";
+import { FormEvent, KeyboardEvent } from "react";
 import { cn } from "../lib/format";
 
 type ComposerProps = {
@@ -23,8 +24,6 @@ export function Composer({
     onSubmit,
     onStop,
 }: ComposerProps) {
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
     const submit = (event: FormEvent) => {
         event.preventDefault();
         if (!disabled) onSubmit();
@@ -40,41 +39,38 @@ export function Composer({
     return (
         <form
             onSubmit={submit}
-            className="border-t border-ink/10 bg-parchment/80 px-4 py-4 backdrop-blur"
+            className="border-t border-rule px-4 py-4"
         >
-            <div className="mx-auto flex max-w-5xl items-end gap-3 border border-ink/15 bg-white/75 p-2 shadow-panel">
-                <div className="hidden h-11 w-11 shrink-0 place-items-center bg-moss/10 text-moss sm:grid">
-                    <WandSparkles className="h-5 w-5" aria-hidden="true" />
-                </div>
+            <div className="composer-well well mx-auto flex max-w-5xl items-end gap-2 p-2 transition">
                 <textarea
-                    ref={textareaRef}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                     onKeyDown={onKeyDown}
                     rows={1}
-                    placeholder="问一个万象棋对局数据问题..."
-                    className="max-h-36 min-h-11 flex-1 resize-none bg-transparent px-2 py-3 text-[15px] leading-6 text-ink outline-none placeholder:text-ink/35"
+                    placeholder="问一个万象棋对局数据问题…"
+                    aria-label="问数输入框"
+                    className="max-h-36 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] leading-6 text-ink outline-none placeholder:text-muted"
                 />
                 <button
                     type={isStreaming ? "button" : "submit"}
                     onClick={isStreaming ? onStop : undefined}
                     disabled={!isStreaming && disabled}
                     className={cn(
-                        "grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition focus:outline-none focus:ring-2 focus:ring-moss/40 focus:ring-offset-2",
+                        "btn shrink-0",
                         isStreaming
-                            ? "bg-tomato hover:bg-tomato/90"
-                            : "bg-ink hover:bg-soot disabled:cursor-not-allowed disabled:bg-ink/25",
+                            ? "btn-quiet w-auto px-3 text-error"
+                            : "btn-primary h-9 w-9 p-0",
                     )}
                     title={isStreaming ? "停止" : "发送"}
                     aria-label={isStreaming ? "停止" : "发送"}
                 >
                     {isStreaming ? (
-                        <Square
-                            className="h-4 w-4 fill-current"
-                            aria-hidden="true"
-                        />
+                        <>
+                            <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                            停止
+                        </>
                     ) : (
-                        <ArrowUp className="h-5 w-5" aria-hidden="true" />
+                        <ArrowUp className="h-4 w-4" aria-hidden="true" />
                     )}
                 </button>
             </div>

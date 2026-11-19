@@ -1,6 +1,7 @@
 /**
  * 智能体执行流程图组件
- * 把 LangGraph 的细粒度节点归并成三个主阶段，横向紧凑展示
+ * 把 LangGraph 的细粒度节点归并成三个主阶段，横向紧凑展示。
+ * 阶段片是状态徽章：待定躺在纸三档上，运行中带余烬内环，完成打勾，出错报红
  */
 import { Check, ChevronRight, Circle, LoaderCircle, X } from "lucide-react";
 import { Fragment } from "react";
@@ -92,20 +93,17 @@ function PhaseCard({ name, status }: { name: string; status: PhaseStatus }) {
   return (
     <div
       className={cn(
-        "flex h-10 shrink-0 items-center gap-2 border px-3 text-sm font-semibold shadow-line transition",
-        status === "pending" && "border-ink/10 bg-white/55 text-ink/45",
-        status === "running" && "border-brass/45 bg-brass/15 text-ink",
-        status === "success" && "border-moss/25 bg-moss/10 text-ink",
-        status === "error" && "border-tomato/35 bg-tomato/10 text-tomato",
+        "flex h-8 shrink-0 items-center gap-2 rounded-pill px-3 text-sm font-medium",
+        status === "pending" && "bg-paper-3 text-muted",
+        status === "running" && "bg-paper-2 text-ink ring-1 ring-inset ring-focus",
+        status === "success" && "bg-paper-2 text-ink",
+        status === "error" && "bg-paper-2 text-error ring-1 ring-inset ring-error",
       )}
     >
       <span
         className={cn(
-          "grid h-6 w-6 shrink-0 place-items-center rounded-full",
-          status === "pending" && "bg-ink/5 text-ink/35",
-          status === "running" && "bg-brass/20 text-brass",
-          status === "success" && "bg-moss/15 text-moss",
-          status === "error" && "bg-tomato/15 text-tomato",
+          "shrink-0",
+          status === "success" && "text-success",
         )}
       >
         <NodeIcon status={status} />
@@ -121,19 +119,19 @@ export function StepRail({ steps = [] }: { steps?: StepState[] }) {
   const statusMap = getStatusMap(steps);
 
   return (
-    <section className="mt-4 border border-ink/10 bg-white/40 px-3 py-4 shadow-line">
-      <div className="mb-3 flex items-center justify-between gap-3 px-1">
-        <div className="text-sm font-semibold text-ink">执行流程</div>
-        <div className="text-xs text-ink/45">LangGraph</div>
+    <section className="mt-4">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <p className="label">执行流程</p>
+        <p className="label">LangGraph</p>
       </div>
 
       {/* 主阶段横向排列，窄屏时可以横向滚动，不再占用整屏高度 */}
-      <div className="flex items-center gap-2 overflow-x-auto px-1 py-1">
+      <div className="flex items-center gap-2 overflow-x-auto py-1">
         {phases.map((phase, index) => (
           <Fragment key={phase.name}>
             {index > 0 && (
               <ChevronRight
-                className="h-4 w-4 shrink-0 text-ink/35"
+                className="h-4 w-4 shrink-0 text-muted"
                 aria-hidden="true"
               />
             )}

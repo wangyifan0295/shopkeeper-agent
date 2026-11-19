@@ -60,3 +60,6 @@ Thumbs.db
 
 # Local TEI embedding model files (large)
 docker/embedding/
+
+# Hallmark 设计工具缓存
+.hallmark/
