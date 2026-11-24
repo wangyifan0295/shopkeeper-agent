@@ -73,9 +73,11 @@ def build_fact_rows(data: dict) -> tuple[list[dict], list[dict]]:
             raise ValueError(f"对局编号重复: {match_id}")
         seen_match_ids.add(match_id)
 
-        # startedAt 形如 2026-10-19T09:00:00.000Z 转成东八区后取日期
+        # startedAt 形如 2026-10-19T09:00:00.000Z 转成东八区后取日期和小时
         started_at = datetime.fromisoformat(match["startedAt"].replace("Z", "+00:00"))
-        match_date = (started_at + UTC_OFFSET).date()
+        local_started = started_at + UTC_OFFSET
+        match_date = local_started.date()
+        slot_hour = local_started.hour
 
         bans = match.get("bans") or []
         if len(bans) > 1:
@@ -88,6 +90,7 @@ def build_fact_rows(data: dict) -> tuple[list[dict], list[dict]]:
             {
                 "match_id": match_id,
                 "match_date": match_date,
+                "slot_hour": slot_hour,
                 "banned_faction": banned_faction,
             }
         )
@@ -149,8 +152,8 @@ async def import_data(source_path: Path, ddl_path: Path):
             )
             await conn.execute(
                 text(
-                    "INSERT INTO fact_match (match_id, match_date, banned_faction) "
-                    "VALUES (:match_id, :match_date, :banned_faction)"
+                    "INSERT INTO fact_match (match_id, match_date, slot_hour, banned_faction) "
+                    "VALUES (:match_id, :match_date, :slot_hour, :banned_faction)"
                 ),
                 match_rows,
             )
@@ -226,8 +229,8 @@ async def import_incremental(source_path: Path, ddl_path: Path):
             if new_matches:
                 await conn.execute(
                     text(
-                        "INSERT INTO fact_match (match_id, match_date, banned_faction) "
-                        "VALUES (:match_id, :match_date, :banned_faction)"
+                        "INSERT INTO fact_match (match_id, match_date, slot_hour, banned_faction) "
+                        "VALUES (:match_id, :match_date, :slot_hour, :banned_faction)"
                     ),
                     new_matches,
                 )

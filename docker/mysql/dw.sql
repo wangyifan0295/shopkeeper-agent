@@ -60,8 +60,9 @@ VALUES ('阿离', 1),
 DROP TABLE IF EXISTS fact_match;
 CREATE TABLE fact_match
 (
-    match_id       VARCHAR(20) PRIMARY KEY COMMENT '对局编号，格式：日期-时间，如 20261019-1700',
+    match_id       VARCHAR(20) PRIMARY KEY COMMENT '对局编号，格式：日期T小时-模式，如 2026-11-23T23-万象大赛',
     match_date     DATE        NOT NULL COMMENT '对局日期（本地时区）',
+    slot_hour      TINYINT     NOT NULL COMMENT '对局小时（本地时区 0-23），取自对局开始时间，与 match_id 中 T 后的小时一致',
     banned_faction VARCHAR(20) NULL COMMENT '本场禁用的阵营，关联 dim_faction.faction_name；未禁用为 NULL'
 );
 
