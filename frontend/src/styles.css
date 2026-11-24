@@ -132,6 +132,10 @@
     outline-offset: -3px;
     transition: background-color var(--dur-short) var(--ease-out);
   }
+  .input option {
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+  }
   .input::placeholder { color: var(--color-muted); }
   .input:hover { background: var(--color-paper-3); }
   .input:focus-visible {
@@ -141,6 +145,31 @@
   .input:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+
+  /* 轻氛围背景层：极淡顶光 + 可选点阵纹理，不干扰前景阅读 */
+  .theme-atmosphere {
+    background-image: var(--surface-atmosphere);
+    background-repeat: no-repeat;
+  }
+  .theme-pattern {
+    background-image: var(--surface-pattern);
+    background-size: 28px 28px;
+  }
+
+  /* 轻胶囊标签：用于禁用阵营、招牌棋手、名次微标等 */
+  .pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-badge-bg);
+    border: var(--rule-hair) solid var(--color-rule);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--color-ink-2);
+    white-space: nowrap;
   }
 
   /* 数据表：只有横向规则，无外框无卡片（craft §9） */
@@ -178,5 +207,21 @@
   @keyframes skeleton-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.45; }
+  }
+
+  /* 右侧抽屉入场动效（reduced-motion 下自动归零） */
+  .drawer-backdrop {
+    animation: drawer-fade-in var(--dur-short) var(--ease-out);
+  }
+  .drawer-panel {
+    animation: drawer-slide-in var(--dur-short) var(--ease-out);
+  }
+  @keyframes drawer-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes drawer-slide-in {
+    from { transform: translateX(28px); opacity: 0.85; }
+    to { transform: translateX(0); opacity: 1; }
   }
 }

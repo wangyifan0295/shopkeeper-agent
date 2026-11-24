@@ -33,6 +33,12 @@ export default {
         focus: "var(--color-focus)",
         error: "var(--color-error)",
         success: "var(--color-success)",
+        rank: {
+          1: "var(--color-rank-1)",
+          2: "var(--color-rank-2)",
+          3: "var(--color-rank-3)",
+        },
+        badge: "var(--color-badge-bg)",
         heat: {
           1: "var(--heat-1)",
           2: "var(--heat-2)",
