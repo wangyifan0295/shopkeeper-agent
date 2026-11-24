@@ -7,10 +7,11 @@ import {
   ArrowDown,
   ArrowLeftRight,
   ArrowUp,
-  ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { FilterSelect } from "../components/FilterSelect";
 import { Pagination } from "../components/Pagination";
 import { SearchInput } from "../components/SearchInput";
 import { WinRate } from "../components/WinRate";
@@ -162,29 +163,18 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
               placeholder="搜索选手名…"
               ariaLabel="搜索选手名"
             />
-            <div className="flex items-center gap-2">
-              <label htmlFor="min-matches" className="label shrink-0">
-                场次下限
-              </label>
-              <div className="relative">
-                <select
-                  id="min-matches"
-                  value={minMatches}
-                  onChange={(event) => setMinMatches(Number(event.target.value))}
-                  className="input appearance-none pr-8"
-                >
-                  {MIN_MATCHES_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
+            <FilterSelect
+              value={minMatches === 0 ? "" : String(minMatches)}
+              onChange={(val) => setMinMatches(val ? Number(val) : 0)}
+              options={MIN_MATCHES_OPTIONS.filter((opt) => opt.value > 0).map((opt) => ({
+                value: String(opt.value),
+                label: opt.label,
+              }))}
+              placeholder="全部场次"
+              labelPrefix="场次下限"
+              icon={<SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
+              ariaLabel="筛选场次下限"
+            />
           </div>
 
           {error ? (
