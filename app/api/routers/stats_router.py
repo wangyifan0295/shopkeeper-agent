@@ -28,7 +28,7 @@ async def list_players_handler(
     # 场次下限：0 表示全部，前端提供 5 / 10 / 20 档位
     min_matches: Annotated[int, Query(ge=0, description="场次下限")] = 0,
     # 排序字段与方向都收窄成字面量枚举，FastAPI 自动拦截非法取值
-    sort_by: Literal["matches", "win_rate", "top3_rate", "avg_place"] = "matches",
+    sort_by: Literal["matches", "win_rate", "recent_win_rate", "top3_rate", "avg_place"] = "matches",
     order: Literal["asc", "desc"] = "desc",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -58,6 +58,15 @@ async def get_player_handler(
     return detail
 
 
+@stats_router.get("/api/stats/overview")
+async def get_overview_handler(
+    stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
+):
+    """返回数仓全局概况：总对局数、选手数、棋手数与最新对局日期"""
+
+    return await stats_repository.get_overview()
+
+
 @stats_router.get("/api/stats/matches")
 async def list_matches_handler(
     stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
@@ -65,14 +74,17 @@ async def list_matches_handler(
     search: Annotated[str, Query(description="选手名模糊搜索")] = "",
     # 禁用阵营精确匹配，空串表示不过滤
     faction: Annotated[str, Query(description="禁用阵营")] = "",
+    # 出场棋手精确匹配，空串表示不过滤
+    lord: Annotated[str, Query(description="出场棋手")] = "",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
-    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营下拉真值"""
+    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营与棋手下拉真值"""
 
     return await stats_repository.list_matches(
         search=search.strip(),
         faction=faction.strip(),
+        lord=lord.strip(),
         page=page,
         page_size=page_size,
     )
@@ -85,3 +97,16 @@ async def list_lords_handler(
     """返回全部棋手的胜率榜（全量，按吃鸡率降序）"""
 
     return {"rows": await stats_repository.list_lords()}
+
+
+@stats_router.get("/api/stats/lords/{lord_name}")
+async def get_lord_handler(
+    lord_name: str,
+    stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
+):
+    """返回单个棋手的总指标和各选手使用该棋手的胜率明细"""
+
+    detail = await stats_repository.get_lord(lord_name)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="未找到该棋手")
+    return detail

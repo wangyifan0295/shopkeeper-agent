@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 PLAYER_SORT_COLUMNS = {
     "matches": "matches",
     "win_rate": "win_rate",
+    "recent_win_rate": "recent_win_rate",
     "top3_rate": "top3_rate",
     "avg_place": "avg_place",
 }
@@ -68,14 +69,37 @@ class DWStatsRepository:
         offset = (page - 1) * page_size
 
         # 用 INSTR 做子串匹配而不是 LIKE，选手名里的 % _ 等字符不会被当成通配符
+        ranked_search_condition = (
+            "where instr(fmp.player_name, :search) > 0" if search else ""
+        )
         search_condition = (
             "where instr(player_name, :search) > 0" if search else ""
         )
 
+        # 通过窗口函数为每位选手按对局时间倒序编号，同步聚合生涯指标与最近 8 场吃鸡率
         sql = f"""
-            select player_name as player, {_PLAYER_METRICS}
-            from fact_match_player
-            {search_condition}
+            with ranked as (
+                select
+                    fmp.player_name,
+                    fmp.final_place,
+                    row_number() over (
+                        partition by fmp.player_name
+                        order by fm.match_date desc, fm.match_id desc
+                    ) as rn
+                from fact_match_player fmp
+                left join fact_match fm on fm.match_id = fmp.match_id
+                {ranked_search_condition}
+            )
+            select
+                player_name as player,
+                {_PLAYER_METRICS},
+                sum(case when rn <= 8 then 1 else 0 end) as recent_matches,
+                round(
+                    sum(case when rn <= 8 and final_place = 1 then 1 else 0 end)
+                    / sum(case when rn <= 8 then 1 else 0 end) * 100,
+                    2
+                ) as recent_win_rate
+            from ranked
             group by player_name
             having matches >= :min_matches
             order by {sort_column} {direction}, matches desc
@@ -151,8 +175,55 @@ class DWStatsRepository:
             {"player_name": player_name},
         )
 
+        # 最近 8 场对局明细（按日期与场号倒序），用于计算近期吃鸡率与名次轨迹
+        recent_sql = """
+            select
+                fm.match_id,
+                fm.match_date,
+                fmp.final_place as place,
+                fmp.lord_name as lord
+            from fact_match_player fmp
+            left join fact_match fm on fm.match_id = fmp.match_id
+            where fmp.player_name = :player_name
+            order by fm.match_date desc, fmp.match_id desc
+            limit 8
+        """
+        recent_result = await self.session.execute(
+            text(recent_sql),
+            {"player_name": player_name},
+        )
+        recent_records = [
+            {
+                "match_id": row["match_id"],
+                "match_date": str(row["match_date"]) if row["match_date"] is not None else "",
+                "place": int(row["place"]),
+                "lord": row["lord"],
+            }
+            for row in recent_result.mappings().fetchall()
+        ]
+        recent_count = len(recent_records)
+        recent_wins = sum(1 for item in recent_records if item["place"] == 1)
+        recent_top3 = sum(1 for item in recent_records if item["place"] <= 3)
+        recent_win_rate = round(recent_wins / recent_count * 100, 2) if recent_count else 0.0
+        recent_top3_rate = round(recent_top3 / recent_count * 100, 2) if recent_count else 0.0
+        recent_avg_place = (
+            round(sum(item["place"] for item in recent_records) / recent_count, 2)
+            if recent_count
+            else 0.0
+        )
+
         return {
             **summary_rows[0],
+            "recent_matches": recent_count,
+            "recent_win_rate": recent_win_rate,
+            "recent_8": {
+                "matches": recent_count,
+                "wins": recent_wins,
+                "win_rate": recent_win_rate,
+                "top3_rate": recent_top3_rate,
+                "avg_place": recent_avg_place,
+                "records": recent_records,
+            },
             "lord_stats": _float_rows(lord_result.mappings().fetchall()),
         }
 
@@ -160,24 +231,30 @@ class DWStatsRepository:
         self,
         search: str = "",
         faction: str = "",
+        lord: str = "",
         page: int = 1,
         page_size: int = 20,
     ) -> dict:
         """分页查询对局记录：每场附带六人明细（按名次升序），冠军单独带出
 
-        筛选在服务端完成：search 匹配该场任意参赛选手名，faction 匹配禁用阵营
+        筛选在服务端完成：search 匹配该场任意参赛选手名，faction 匹配禁用阵营，lord 匹配出场棋手
         """
 
         offset = (page - 1) * page_size
 
-        # 选手筛选是对局存在性行子查询：该场六人里任一人命中即保留整场
+        # 选手与棋手筛选均为存在性行子查询：该场六人里任一人命中即保留整场
         search_condition = (
             "and exists (select 1 from fact_match_player fp"
             " where fp.match_id = fact_match.match_id"
             " and instr(fp.player_name, :search) > 0)" if search else ""
         )
+        lord_condition = (
+            "and exists (select 1 from fact_match_player fp2"
+            " where fp2.match_id = fact_match.match_id"
+            " and fp2.lord_name = :lord)" if lord else ""
+        )
         faction_condition = "and fact_match.banned_faction = :faction" if faction else ""
-        where = f"where 1 = 1 {search_condition} {faction_condition}"
+        where = f"where 1 = 1 {search_condition} {lord_condition} {faction_condition}"
 
         # 冠军用条件聚合带出，避免为主表再 join 一次；join 后列名全部限定表名防歧义
         sql = f"""
@@ -196,7 +273,13 @@ class DWStatsRepository:
         """
         result = await self.session.execute(
             text(sql),
-            {"search": search, "faction": faction, "page_size": page_size, "offset": offset},
+            {
+                "search": search,
+                "faction": faction,
+                "lord": lord,
+                "page_size": page_size,
+                "offset": offset,
+            },
         )
         rows = _float_rows(result.mappings().fetchall())
 
@@ -208,7 +291,7 @@ class DWStatsRepository:
         """
         count_result = await self.session.execute(
             text(count_sql),
-            {"search": search, "faction": faction},
+            {"search": search, "faction": faction, "lord": lord},
         )
         total = count_result.scalar() or 0
 
@@ -239,11 +322,16 @@ class DWStatsRepository:
             row["players"] = players[row["match_id"]]
             row["match_date"] = str(row["match_date"])
 
-        # 禁用阵营下拉的真值来自维表，目录随攻略站变化时页面自适应
+        # 禁用阵营与棋手下拉的真值来自维表，目录变化时页面自适应
         faction_result = await self.session.execute(
             text("select faction_name from dim_faction order by faction_name")
         )
         factions = [row[0] for row in faction_result.fetchall()]
+
+        lord_list_result = await self.session.execute(
+            text("select lord_name from dim_lord order by lord_name")
+        )
+        lords = [row[0] for row in lord_list_result.fetchall()]
 
         return {
             "rows": rows,
@@ -251,6 +339,79 @@ class DWStatsRepository:
             "page": page,
             "page_size": page_size,
             "factions": factions,
+            "lords": lords,
+        }
+
+    async def get_overview(self) -> dict:
+        """查询数仓全局概况：总对局数、选手数、棋手数与最新对局日期"""
+
+        sql = """
+            select
+                (select count(*) from fact_match) as matches,
+                (select count(distinct player_name) from fact_match_player) as players,
+                (select count(*) from dim_lord) as lords,
+                (select max(match_date) from fact_match) as latest_date
+        """
+        result = await self.session.execute(text(sql))
+        row = result.mappings().fetchone()
+        if not row:
+            return {"matches": 0, "players": 0, "lords": 0, "latest_date": None}
+        return {
+            "matches": int(row["matches"] or 0),
+            "players": int(row["players"] or 0),
+            "lords": int(row["lords"] or 0),
+            "latest_date": str(row["latest_date"]) if row["latest_date"] is not None else None,
+        }
+
+    async def get_lord(self, lord_name: str) -> dict | None:
+        """查询单个棋手的总指标及各选手使用该棋手的表现明细"""
+
+        summary_sql = """
+            select
+                dim_lord.lord_name as lord,
+                count(fact_match_player.match_id) as matches,
+                coalesce(sum(fact_match_player.final_place = 1), 0) as wins,
+                coalesce(
+                    round(
+                        sum(fact_match_player.final_place = 1)
+                            / count(fact_match_player.match_id) * 100, 2
+                    ), 0
+                ) as win_rate,
+                coalesce(
+                    round(
+                        sum(fact_match_player.final_place <= 3)
+                            / count(fact_match_player.match_id) * 100, 2
+                    ), 0
+                ) as top3_rate,
+                coalesce(round(avg(fact_match_player.final_place), 2), 0) as avg_place
+            from dim_lord
+            left join fact_match_player on fact_match_player.lord_name = dim_lord.lord_name
+            where dim_lord.lord_name = :lord_name
+            group by dim_lord.lord_name
+        """
+        summary_result = await self.session.execute(
+            text(summary_sql),
+            {"lord_name": lord_name},
+        )
+        summary_rows = _float_rows(summary_result.mappings().fetchall())
+        if not summary_rows:
+            return None
+
+        players_sql = f"""
+            select player_name as player, {_PLAYER_METRICS}
+            from fact_match_player
+            where lord_name = :lord_name
+            group by player_name
+            order by matches desc, win_rate desc
+        """
+        players_result = await self.session.execute(
+            text(players_sql),
+            {"lord_name": lord_name},
+        )
+
+        return {
+            **summary_rows[0],
+            "player_stats": _float_rows(players_result.mappings().fetchall()),
         }
 
     async def list_lords(self) -> list[dict]:
