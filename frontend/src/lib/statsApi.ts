@@ -3,6 +3,7 @@
  * 对接后端 /api/stats/* 只读聚合接口；开发环境经 Vite 代理转发到 FastAPI
  */
 import type {
+  DashboardData,
   LordDetail,
   LordStatRow,
   MatchesPage,
@@ -66,20 +67,29 @@ export function fetchOverview(): Promise<StatsOverview> {
   return requestJson(`${BASE_URL}/overview`);
 }
 
+/** 拉取数据大盘聚合数据 */
+export function fetchDashboard(): Promise<DashboardData> {
+  return requestJson(`${BASE_URL}/dashboard`);
+}
+
 export type MatchesPageParams = {
   search: string;
   faction: string;
   lord: string;
+  slotHour?: number | null;
   page: number;
   pageSize: number;
 };
 
-/** 拉取对局记录一页：每场含六人明细，另返回阵营与棋手下拉真值 */
+/** 拉取对局记录一页：每场含六人明细，另返回阵营、棋手与小时下拉真值 */
 export function fetchMatchesPage(params: MatchesPageParams): Promise<MatchesPage> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
   if (params.faction) query.set("faction", params.faction);
   if (params.lord) query.set("lord", params.lord);
+  if (params.slotHour !== null && params.slotHour !== undefined) {
+    query.set("slot_hour", String(params.slotHour));
+  }
   query.set("page", String(params.page));
   query.set("page_size", String(params.pageSize));
   return requestJson(`${BASE_URL}/matches?${query.toString()}`);

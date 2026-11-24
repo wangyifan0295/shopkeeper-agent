@@ -14,10 +14,12 @@ import {
   Swords,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { EChartBox } from "../components/EChartBox";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { WIN_RATE_BASELINE, WinRate } from "../components/WinRate";
 import { fetchPlayerDetail } from "../lib/statsApi";
+import type { ChartPalette, EChartsCoreOption } from "../lib/echarts";
 import { cn } from "../lib/format";
 import type { PlayerDetail, SortOrder } from "../types/stats";
 
@@ -129,6 +131,97 @@ export function PlayerDetailDrawer({
 
   const activeSortLabel = LORD_SORT_COLUMNS.find((col) => col.key === sortBy)?.label ?? "场次";
   const sortDirectionLabel = order === "desc" ? "从高到低" : "从低到高";
+
+  const buildRecentOption = useCallback(
+    (palette: ChartPalette): EChartsCoreOption => {
+      // 接口返回按时间倒序（最新在前），走势图改为从早到新（左→右）
+      const chronological = [...(detail?.recent_8?.records ?? [])].reverse();
+      return {
+        animationDuration: 320,
+        grid: { top: 18, right: 16, bottom: 26, left: 32 },
+        tooltip: {
+          trigger: "axis",
+          backgroundColor: palette.paper2,
+          borderColor: palette.rule,
+          borderWidth: 1,
+          textStyle: { color: palette.ink, fontFamily: palette.fontBody, fontSize: 12 },
+          formatter: (params: unknown) => {
+            const first = Array.isArray(params) ? params[0] : params;
+            const idx = (first as { dataIndex?: number } | undefined)?.dataIndex ?? -1;
+            const rec = chronological[idx];
+            if (!rec) return "";
+            return [
+              `<div style="font-weight:600;">第 ${rec.place} 名 · ${rec.lord}</div>`,
+              `<div style="color:${palette.muted};font-size:11px;">${rec.match_date}</div>`,
+            ].join("");
+          },
+        },
+        xAxis: {
+          type: "category",
+          boundaryGap: false,
+          data: chronological.map((rec) =>
+            rec.match_date ? rec.match_date.slice(5) : rec.lord,
+          ),
+          axisLabel: { color: palette.muted, fontFamily: palette.fontMono, fontSize: 10 },
+          axisLine: { lineStyle: { color: palette.rule } },
+        },
+        yAxis: {
+          type: "value",
+          inverse: true,
+          min: 1,
+          max: 6,
+          interval: 1,
+          axisLabel: {
+            color: palette.muted,
+            fontFamily: palette.fontMono,
+            fontSize: 10,
+            formatter: "{value}",
+          },
+          splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
+        },
+        series: [
+          {
+            type: "line",
+            smooth: 0.2,
+            symbol: "circle",
+            symbolSize: 8,
+            data: chronological.map((rec) => ({
+              value: rec.place,
+              itemStyle: {
+                color:
+                  rec.place === 1
+                    ? palette.accent
+                    : rec.place <= 3
+                      ? palette.success
+                      : palette.muted,
+                borderColor: palette.paper,
+                borderWidth: 1.5,
+              },
+            })),
+            lineStyle: { color: palette.ink2, width: 2 },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              lineStyle: {
+                color: palette.muted,
+                type: "dashed",
+                width: 1,
+                opacity: 0.6,
+              },
+              label: {
+                color: palette.muted,
+                fontSize: 10,
+                formatter: "均线 3.5",
+                position: "insideEndTop",
+              },
+              data: [{ yAxis: AVG_PLACE_BASELINE }],
+            },
+          },
+        ],
+      };
+    },
+    [detail],
+  );
 
   const renderSortHeader = (column: (typeof LORD_SORT_COLUMNS)[number]) => {
     const active = sortBy === column.key;
@@ -380,13 +473,13 @@ export function PlayerDetailDrawer({
                 </div>
               </section>
 
-              {/* 最近 8 场状态：近 8 场吃鸡率、前三率、平均名次及每场名次轨迹 */}
+              {/* 最近 8 场状态：近 8 场吃鸡率 + 倒置 Y 轴名次走势折线图 */}
               {detail.recent_8 && detail.recent_8.matches > 0 && (
                 <section className="well space-y-4 p-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div className="flex items-baseline gap-2">
                       <h3 className="text-sm font-medium text-ink">
-                        最近 {detail.recent_8.matches} 场状态
+                        最近 {detail.recent_8.matches} 场走势
                       </h3>
                       <span
                         className={cn(
@@ -407,7 +500,7 @@ export function PlayerDetailDrawer({
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                       <p className="label text-xs">近 {detail.recent_8.matches} 场吃鸡率</p>
                       <p className="mt-1">
@@ -417,33 +510,24 @@ export function PlayerDetailDrawer({
                         />
                       </p>
                     </div>
-
-                    <div className="flex flex-col items-end gap-1.5">
-                      <span className="text-[11px] text-muted">最新在左 · 悬停看日期与棋手</span>
-                      <div className="flex items-center gap-1.5">
-                        {detail.recent_8.records.map((rec) => {
-                          const isWin = rec.place === 1;
-                          const isTop3 = rec.place <= 3;
-                          return (
-                            <span
-                              key={rec.match_id}
-                              title={`${rec.match_date} · 第 ${rec.place} 名 · ${rec.lord}`}
-                              className={cn(
-                                "num flex h-7 w-7 items-center justify-center rounded-lg border text-xs font-medium",
-                                isWin
-                                  ? "border-accent bg-paper text-rank-1"
-                                  : isTop3
-                                    ? "border-rule bg-paper text-success"
-                                    : "border-rule bg-paper-3 text-muted",
-                              )}
-                            >
-                              {rec.place}
-                            </span>
-                          );
-                        })}
-                      </div>
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-pill bg-accent" aria-hidden="true" />
+                        第 1 名
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-pill bg-success" aria-hidden="true" />
+                        2–3 名
+                      </span>
+                      <span>从早到新（上方为第 1 名）</span>
                     </div>
                   </div>
+
+                  <EChartBox
+                    buildOption={buildRecentOption}
+                    height={165}
+                    ariaLabel={`${player} 最近 ${detail.recent_8.matches} 场名次走势图`}
+                  />
                 </section>
               )}
 

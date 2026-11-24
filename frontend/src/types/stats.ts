@@ -79,17 +79,18 @@ export type MatchPlayerRow = {
   lord: string;
 };
 
-/** 对局记录行：一场对局 + 冠军信息 + 六人明细 */
+/** 对局记录行：一场对局 + 小时档位 + 冠军信息 + 六人明细 */
 export type MatchRow = {
   match_id: string;
   match_date: string;
+  slot_hour: number;
   banned_faction: string;
   champion_player: string | null;
   champion_lord: string | null;
   players: MatchPlayerRow[];
 };
 
-/** 对局记录分页响应：factions 与 lords 为筛选下拉的真值 */
+/** 对局记录分页响应：factions、lords 与 hours 为筛选下拉的真值 */
 export type MatchesPage = {
   rows: MatchRow[];
   total: number;
@@ -97,6 +98,7 @@ export type MatchesPage = {
   page_size: number;
   factions: string[];
   lords: string[];
+  hours: number[];
 };
 
 /** 单个棋手下，某位选手的使用表现 */
@@ -113,4 +115,26 @@ export type StatsOverview = {
   players: number;
   lords: number;
   latest_date: string | null;
+};
+
+/** 禁用阵营分布项 */
+export type BannedFactionStat = {
+  faction: string;
+  matches: number;
+};
+
+/** 大盘火热选手对比行 */
+export type HotPlayerStat = {
+  player: string;
+  matches: number;
+  win_rate: number;
+  recent_matches: number;
+  recent_win_rate: number;
+};
+
+/** 数据大盘全量响应 */
+export type DashboardData = {
+  overview: StatsOverview;
+  banned_factions: BannedFactionStat[];
+  hot_players: HotPlayerStat[];
 };
