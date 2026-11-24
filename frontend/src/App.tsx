@@ -1,122 +1,312 @@
 /**
  * 前端应用主组件
- * 多功能工作台外壳：左侧导航 + 主区视图切换（对话 / 选手榜 / 选手详情 / 棋手榜）。
- * 不引入路由库，视图用内部状态管理；聊天会话状态放在 App 层，切页不丢
+ * 多功能工作台外壳：左侧导航 + 主区 4 个常驻视图（对话 / 选手榜 / 棋手榜 / 对局记录）
+ * + 互斥右侧抽屉（选手详情 / 棋手详情，支持互相穿透且不卸载背后列表状态）。
+ * 使用轻量 URL Hash 同步视图、筛选与抽屉参数，支持刷新保持与浏览器前进/后退。
  */
-import { Crown, MessagesSquare, Users } from "lucide-react";
-import { useState } from "react";
+import { Crown, MessagesSquare, Swords, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
+import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { ChatView } from "./views/ChatView";
+import { LordDetailDrawer } from "./views/LordDetailView";
 import { LordsView } from "./views/LordsView";
 import { MatchesView } from "./views/MatchesView";
-import { PlayerDetailView } from "./views/PlayerDetailView";
+import { PlayerDetailDrawer } from "./views/PlayerDetailView";
 import { PlayersView } from "./views/PlayersView";
 import { useChatSession } from "./hooks/useChatSession";
+import { useTheme } from "./hooks/useTheme";
 import { cn } from "./lib/format";
-import type { AppView, NavView } from "./types/view";
+import { fetchOverview } from "./lib/statsApi";
+import type { StatsOverview } from "./types/stats";
+import type { NavView } from "./types/view";
 
-// 窄屏导航条：侧栏在 lg 以下隐藏时的视图入口（对局记录按用户要求暂不加移动端入口）
+// 窄屏导航条：与桌面端侧栏保持一致的 4 个核心视图入口
 const NAV_ITEMS: Array<{ view: NavView; label: string; icon: typeof Users }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
   { view: "players", label: "选手榜", icon: Users },
   { view: "lords", label: "棋手榜", icon: Crown },
+  { view: "matches", label: "对局记录", icon: Swords },
 ];
 
+type DrawerTarget =
+  | { kind: "player"; name: string }
+  | { kind: "lord"; name: string };
+
+type RouteState = {
+  view: NavView;
+  drawer: DrawerTarget | null;
+  matchesPresetPlayer: string | null;
+  matchesPresetLord: string | null;
+};
+
+function parseHash(rawHash: string): RouteState {
+  const cleaned = rawHash.replace(/^#\/?/, "");
+  const [pathPart, queryPart = ""] = cleaned.split("?");
+  const params = new URLSearchParams(queryPart);
+  const detailPlayer = params.get("detail")?.trim() || null;
+  const detailLord = params.get("lordDetail")?.trim() || null;
+  const drawer: DrawerTarget | null = detailPlayer
+    ? { kind: "player", name: detailPlayer }
+    : detailLord
+      ? { kind: "lord", name: detailLord }
+      : null;
+
+  if (pathPart === "players") {
+    return {
+      view: "players",
+      drawer,
+      matchesPresetPlayer: null,
+      matchesPresetLord: null,
+    };
+  }
+  if (pathPart === "lords") {
+    return {
+      view: "lords",
+      drawer,
+      matchesPresetPlayer: null,
+      matchesPresetLord: null,
+    };
+  }
+  if (pathPart === "matches") {
+    return {
+      view: "matches",
+      drawer,
+      matchesPresetPlayer: params.get("player")?.trim() || null,
+      matchesPresetLord: params.get("lord")?.trim() || null,
+    };
+  }
+  // 兼容旧的 #player/<name> 链接：留在选手榜并自动打开右侧详情抽屉
+  if (pathPart.startsWith("player/")) {
+    const encoded = pathPart.slice("player/".length);
+    try {
+      const player = decodeURIComponent(encoded).trim();
+      if (player) {
+        return {
+          view: "players",
+          drawer: { kind: "player", name: player },
+          matchesPresetPlayer: null,
+          matchesPresetLord: null,
+        };
+      }
+    } catch {
+      // 非法编码回退到选手榜
+    }
+    return {
+      view: "players",
+      drawer: null,
+      matchesPresetPlayer: null,
+      matchesPresetLord: null,
+    };
+  }
+  return {
+    view: "chat",
+    drawer,
+    matchesPresetPlayer: null,
+    matchesPresetLord: null,
+  };
+}
+
+function buildHash(state: RouteState): string {
+  const params = new URLSearchParams();
+  if (state.view === "matches") {
+    if (state.matchesPresetPlayer) params.set("player", state.matchesPresetPlayer);
+    if (state.matchesPresetLord) params.set("lord", state.matchesPresetLord);
+  }
+  if (state.drawer?.kind === "player") {
+    params.set("detail", state.drawer.name);
+  } else if (state.drawer?.kind === "lord") {
+    params.set("lordDetail", state.drawer.name);
+  }
+  const query = params.toString();
+  return query ? `#${state.view}?${query}` : `#${state.view}`;
+}
+
 export default function App() {
-  const [view, setView] = useState<AppView>("chat");
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
-  // 选手详情从哪来就回哪去：从对局记录点入时，返回按钮带筛选回对局页
-  const [detailOrigin, setDetailOrigin] = useState<NavView>("players");
-  // 选手详情"查看对局"带给对局页的预置选手名筛选
-  const [matchesPreset, setMatchesPreset] = useState<string | null>(null);
+  const initialRoute = parseHash(window.location.hash);
+  const [view, setView] = useState<NavView>(initialRoute.view);
+  const [drawer, setDrawer] = useState<DrawerTarget | null>(initialRoute.drawer);
+  const [matchesPresetPlayer, setMatchesPresetPlayer] = useState<string | null>(
+    initialRoute.matchesPresetPlayer,
+  );
+  const [matchesPresetLord, setMatchesPresetLord] = useState<string | null>(
+    initialRoute.matchesPresetLord,
+  );
+  const [overview, setOverview] = useState<StatsOverview | null>(null);
   const chat = useChatSession();
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOverview()
+      .then((result) => {
+        if (!cancelled) setOverview(result);
+      })
+      .catch(() => {
+        // 概况区属于辅助信息，接口不可达时静默保持空态
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyRoute = useCallback((next: RouteState, pushHash = true) => {
+    setView(next.view);
+    setDrawer(next.drawer);
+    setMatchesPresetPlayer(next.matchesPresetPlayer);
+    setMatchesPresetLord(next.matchesPresetLord);
+    if (pushHash) {
+      const targetHash = buildHash(next);
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = parseHash(window.location.hash);
+      applyRoute(next, false);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [applyRoute]);
 
   const navigate = (next: NavView) => {
-    // 导航进入的是全新上下文：清空选中态与对局预置筛选
-    setSelectedPlayer(null);
-    setMatchesPreset(null);
-    setView(next);
+    applyRoute({
+      view: next,
+      drawer: null,
+      matchesPresetPlayer: null,
+      matchesPresetLord: null,
+    });
   };
 
   const openPlayerDetail = (player: string) => {
-    setDetailOrigin(view === "matches" ? "matches" : "players");
-    setSelectedPlayer(player);
-    setView("player-detail");
+    applyRoute({
+      view,
+      drawer: { kind: "player", name: player },
+      matchesPresetPlayer,
+      matchesPresetLord,
+    });
   };
 
-  // 从选手详情返回：来处是对局记录时保留其筛选直接回去（绕过 navigate 的清空）
-  const backFromDetail = () => {
-    if (detailOrigin === "matches") {
-      setView("matches");
-    } else {
-      navigate("players");
-    }
+  const openLordDetail = (lord: string) => {
+    applyRoute({
+      view,
+      drawer: { kind: "lord", name: lord },
+      matchesPresetPlayer,
+      matchesPresetLord,
+    });
   };
 
-  const openMatchesFor = (player: string) => {
-    setMatchesPreset(player);
-    setView("matches");
+  const closeDrawer = () => {
+    applyRoute({
+      view,
+      drawer: null,
+      matchesPresetPlayer,
+      matchesPresetLord,
+    });
   };
 
-  const activeNav: NavView = view === "player-detail" ? "players" : view;
+  const openMatchesForPlayer = (player: string) => {
+    applyRoute({
+      view: "matches",
+      drawer: null,
+      matchesPresetPlayer: player,
+      matchesPresetLord: null,
+    });
+  };
+
+  const openMatchesForLord = (lord: string) => {
+    applyRoute({
+      view: "matches",
+      drawer: null,
+      matchesPresetPlayer: null,
+      matchesPresetLord: lord,
+    });
+  };
+
+  const desktopThemeSwitcher = (
+    <ThemeSwitcher theme={theme} onChange={setTheme} className="hidden lg:block" />
+  );
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper text-ink lg:grid lg:grid-cols-[300px_minmax(0,1fr)]">
-      {/* 窄屏顶部导航（lg 以下），侧栏隐藏时的视图入口 */}
+      {/* 窄屏顶部导航（lg 以下），4 个视图入口 + 右上角主题下拉 */}
       <nav
         aria-label="窄屏视图导航"
-        className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-rule px-2 py-2 lg:hidden"
+        className="flex shrink-0 items-center gap-1 border-b border-rule px-2 py-2 lg:hidden"
       >
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const active = activeNav === item.view;
-          return (
-            <button
-              key={item.view}
-              type="button"
-              onClick={() => navigate(item.view)}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "relative flex h-9 shrink-0 items-center gap-2 rounded-pill px-3 text-sm font-medium transition",
-                active ? "bg-paper-2 text-ink" : "text-muted hover:bg-paper-2 hover:text-ink-2",
-              )}
-            >
-              {active && (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-1 left-2 right-2 h-[2px] rounded-pill bg-accent"
-                />
-              )}
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {item.label}
-            </button>
-          );
-        })}
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.view;
+            return (
+              <button
+                key={item.view}
+                type="button"
+                onClick={() => navigate(item.view)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex h-9 shrink-0 items-center gap-1.5 rounded-pill px-2.5 text-sm font-medium transition",
+                  active ? "bg-paper-2 text-ink" : "text-muted hover:bg-paper-2 hover:text-ink-2",
+                )}
+              >
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-1 left-2 right-2 h-[2px] rounded-pill bg-accent"
+                  />
+                )}
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="ml-auto shrink-0 pl-2">
+          <ThemeSwitcher theme={theme} onChange={setTheme} />
+        </div>
       </nav>
 
-      <Sidebar view={view} onNavigate={navigate} chat={chat} />
+      <Sidebar view={view} onNavigate={navigate} chat={chat} overview={overview} />
 
-      <div className="flex min-h-0 min-w-0 flex-col">
-        {view === "chat" && <ChatView chat={chat} />}
-        {view === "players" && <PlayersView onSelectPlayer={openPlayerDetail} />}
-        {view === "player-detail" &&
-          (selectedPlayer ? (
-            <PlayerDetailView
-              player={selectedPlayer}
-              onBack={backFromDetail}
-              onBrowseMatches={openMatchesFor}
-            />
-          ) : (
-            <PlayersView onSelectPlayer={openPlayerDetail} />
-          ))}
-        {view === "lords" && <LordsView />}
+      <div className="theme-atmosphere flex min-h-0 min-w-0 flex-col">
+        {view === "chat" && <ChatView chat={chat} headerExtra={desktopThemeSwitcher} />}
+        {view === "players" && (
+          <PlayersView onSelectPlayer={openPlayerDetail} headerExtra={desktopThemeSwitcher} />
+        )}
+        {view === "lords" && (
+          <LordsView onSelectLord={openLordDetail} headerExtra={desktopThemeSwitcher} />
+        )}
         {view === "matches" && (
           <MatchesView
-            presetSearch={matchesPreset ?? undefined}
+            presetSearch={matchesPresetPlayer ?? undefined}
+            presetLord={matchesPresetLord ?? undefined}
             onSelectPlayer={openPlayerDetail}
+            onSelectLord={openLordDetail}
+            headerExtra={desktopThemeSwitcher}
           />
         )}
       </div>
+
+      {drawer?.kind === "player" && (
+        <PlayerDetailDrawer
+          player={drawer.name}
+          onClose={closeDrawer}
+          onSelectLord={openLordDetail}
+          onBrowseMatches={openMatchesForPlayer}
+        />
+      )}
+
+      {drawer?.kind === "lord" && (
+        <LordDetailDrawer
+          lord={drawer.name}
+          onClose={closeDrawer}
+          onSelectPlayer={openPlayerDetail}
+          onBrowseMatches={openMatchesForLord}
+        />
+      )}
     </div>
   );
 }

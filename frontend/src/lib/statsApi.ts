@@ -3,15 +3,18 @@
  * 对接后端 /api/stats/* 只读聚合接口；开发环境经 Vite 代理转发到 FastAPI
  */
 import type {
+  LordDetail,
   LordStatRow,
   MatchesPage,
   PlayerDetail,
   PlayersPage,
   PlayerSortBy,
   SortOrder,
+  StatsOverview,
 } from "../types/stats";
 
-const BASE_URL = "/api/stats";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
+const BASE_URL = `${API_BASE_URL}/api/stats`;
 
 async function requestJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -53,18 +56,30 @@ export function fetchLords(): Promise<{ rows: LordStatRow[] }> {
   return requestJson(`${BASE_URL}/lords`);
 }
 
+/** 拉取单个棋手的总指标和各选手使用明细 */
+export function fetchLordDetail(lord: string): Promise<LordDetail> {
+  return requestJson(`${BASE_URL}/lords/${encodeURIComponent(lord)}`);
+}
+
+/** 拉取数仓全局概况 */
+export function fetchOverview(): Promise<StatsOverview> {
+  return requestJson(`${BASE_URL}/overview`);
+}
+
 export type MatchesPageParams = {
   search: string;
   faction: string;
+  lord: string;
   page: number;
   pageSize: number;
 };
 
-/** 拉取对局记录一页：每场含六人明细，另返回阵营下拉真值 */
+/** 拉取对局记录一页：每场含六人明细，另返回阵营与棋手下拉真值 */
 export function fetchMatchesPage(params: MatchesPageParams): Promise<MatchesPage> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
   if (params.faction) query.set("faction", params.faction);
+  if (params.lord) query.set("lord", params.lord);
   query.set("page", String(params.page));
   query.set("page_size", String(params.pageSize));
   return requestJson(`${BASE_URL}/matches?${query.toString()}`);

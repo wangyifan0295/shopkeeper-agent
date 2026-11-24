@@ -1,17 +1,18 @@
 /**
  * 选手榜视图
- * 服务端分页 + 筛选（姓名搜索 / 场次下限）+ 可点击列头排序。
- * 表格只有横向规则；吃鸡率列是衬线数字加热坡条。加载态给骨架行
+ * 服务端分页 + 筛选（姓名搜索含一键清除 / 场次下限）+ 可点击列头排序。
+ * 页头副标题随当前排序维度与方向实时联动。
  */
 import {
   ArrowDown,
   ArrowLeftRight,
   ArrowUp,
   ChevronDown,
-  Search,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { Pagination } from "../components/Pagination";
+import { SearchInput } from "../components/SearchInput";
 import { WinRate } from "../components/WinRate";
 import { fetchPlayersPage } from "../lib/statsApi";
 import { cn } from "../lib/format";
@@ -31,15 +32,17 @@ const MIN_MATCHES_OPTIONS = [
 const SORTABLE_COLUMNS: Array<{ key: PlayerSortBy; label: string; defaultOrder: SortOrder }> = [
   { key: "matches", label: "场次", defaultOrder: "desc" },
   { key: "win_rate", label: "吃鸡率", defaultOrder: "desc" },
+  { key: "recent_win_rate", label: "近8场吃鸡率", defaultOrder: "desc" },
   { key: "top3_rate", label: "前三率", defaultOrder: "desc" },
   { key: "avg_place", label: "平均名次", defaultOrder: "asc" },
 ];
 
 type PlayersViewProps = {
   onSelectPlayer: (player: string) => void;
+  headerExtra?: ReactNode;
 };
 
-export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
+export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [minMatches, setMinMatches] = useState(0);
@@ -93,6 +96,8 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   const hasFilter = debouncedSearch !== "" || minMatches > 0;
+  const activeSortLabel = SORTABLE_COLUMNS.find((col) => col.key === sortBy)?.label ?? "场次";
+  const sortDirectionLabel = order === "desc" ? "从高到低" : "从低到高";
 
   const toggleSort = (column: PlayerSortBy, defaultOrder: SortOrder) => {
     if (sortBy === column) {
@@ -118,9 +123,9 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
         {column.label}
         {active ? (
           order === "desc" ? (
-            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+            <ArrowDown className="h-3 w-3 text-accent" aria-hidden="true" />
           ) : (
-            <ArrowUp className="h-3 w-3" aria-hidden="true" />
+            <ArrowUp className="h-3 w-3 text-accent" aria-hidden="true" />
           )
         ) : (
           <ArrowLeftRight className="h-3 w-3 opacity-50" aria-hidden="true" />
@@ -134,30 +139,29 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg">选手榜</h1>
-          <p className="label hidden sm:block">全部选手，按场次从高到低</p>
+          <p className="label hidden sm:block">
+            按{activeSortLabel}
+            {sortDirectionLabel}
+          </p>
         </div>
-        <p className="label num">
-          共 <span className="figure text-base text-ink-2">{data?.total ?? "—"}</span> 位
-        </p>
+        <div className="flex shrink-0 items-center gap-3">
+          <p className="label num">
+            共 <span className="figure text-base text-ink-2">{data?.total ?? "—"}</span> 位
+          </p>
+          {headerExtra}
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
           {/* 筛选条：姓名搜索 + 场次下限 */}
           <div className="mb-6 flex flex-wrap items-center gap-3">
-            <div className="relative min-w-60 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-                aria-hidden="true"
-              />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="搜索选手名…"
-                aria-label="搜索选手名"
-                className="input w-full pl-9"
-              />
-            </div>
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="搜索选手名…"
+              ariaLabel="搜索选手名"
+            />
             <div className="flex items-center gap-2">
               <label htmlFor="min-matches" className="label shrink-0">
                 场次下限
@@ -184,16 +188,10 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
           </div>
 
           {error ? (
-            <div className="flex items-center justify-between gap-4 rounded-well border-l-2 border-error bg-paper-2 px-4 py-3 text-sm text-error">
-              <span className="min-w-0 break-all">{error}</span>
-              <button
-                type="button"
-                onClick={() => setRefreshKey((key) => key + 1)}
-                className="btn btn-quiet shrink-0 text-error"
-              >
-                重试
-              </button>
-            </div>
+            <ErrorBanner
+              message={error}
+              onRetry={() => setRefreshKey((key) => key + 1)}
+            />
           ) : data === null ? (
             // 初次加载：给出表格形状的骨架行
             <div className="space-y-4" aria-label="加载中">
@@ -210,9 +208,9 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
             </div>
           ) : (
             <div className={cn("transition", loading && "opacity-60")}>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto lg:overflow-x-visible">
                 <table className="data-table">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-paper">
                     <tr>
                       <th scope="col">选手</th>
                       {SORTABLE_COLUMNS.slice(0, 1).map((column) => (
@@ -231,7 +229,7 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
                   <tbody>
                     {data.rows.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-16 text-center">
+                        <td colSpan={7} className="py-16 text-center">
                           <p className="text-sm text-ink-2">没有符合条件的选手</p>
                           {hasFilter ? (
                             <button
@@ -256,7 +254,7 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
                             <button
                               type="button"
                               onClick={() => onSelectPlayer(row.player)}
-                              className="underline-offset-4 transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus hover:underline"
+                              className="underline-offset-4 transition hover:text-accent hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus"
                               title={`查看 ${row.player} 的详情`}
                             >
                               {row.player}
@@ -266,6 +264,20 @@ export function PlayersView({ onSelectPlayer }: PlayersViewProps) {
                           <td className="cell-num text-ink-2">{row.wins}</td>
                           <td className="cell-num">
                             <WinRate value={row.win_rate} />
+                          </td>
+                          <td
+                            className="cell-num"
+                            title={
+                              row.recent_matches !== undefined
+                                ? `最近 ${row.recent_matches} 场吃鸡率`
+                                : undefined
+                            }
+                          >
+                            {row.recent_win_rate !== undefined ? (
+                              <WinRate value={row.recent_win_rate} />
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
                           </td>
                           <td className="cell-num text-ink-2">{row.top3_rate.toFixed(2)}%</td>
                           <td className="cell-num text-ink-2">{row.avg_place.toFixed(2)}</td>

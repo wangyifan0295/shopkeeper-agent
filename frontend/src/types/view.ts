@@ -1,8 +1,8 @@
 /**
  * 应用视图类型定义
- * 不引入路由库，主区视图用 App 内部状态切换；player-detail 由选手榜点击进入
+ * 主区 4 个常驻视图（对话 / 选手榜 / 棋手榜 / 对局记录）；
+ * 选手详情改为右侧抽屉浮层展示，不卸载背后列表与筛选状态。
  */
-export type AppView = "chat" | "players" | "player-detail" | "lords" | "matches";
+export type NavView = "chat" | "players" | "lords" | "matches";
 
-/** 侧栏导航能直接到达的视图，选手详情只能从选手榜进入 */
-export type NavView = Exclude<AppView, "player-detail">;
+export type AppView = NavView;

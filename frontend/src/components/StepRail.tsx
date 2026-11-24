@@ -96,13 +96,14 @@ function PhaseCard({ name, status }: { name: string; status: PhaseStatus }) {
         "flex h-8 shrink-0 items-center gap-2 rounded-pill px-3 text-sm font-medium",
         status === "pending" && "bg-paper-3 text-muted",
         status === "running" && "bg-paper-2 text-ink ring-1 ring-inset ring-focus",
-        status === "success" && "bg-paper-2 text-ink",
+        status === "success" && "bg-paper-2 text-ink ring-1 ring-inset ring-rule",
         status === "error" && "bg-paper-2 text-error ring-1 ring-inset ring-error",
       )}
     >
       <span
         className={cn(
           "shrink-0",
+          status === "running" && "text-focus",
           status === "success" && "text-success",
         )}
       >

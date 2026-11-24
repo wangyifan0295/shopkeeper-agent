@@ -3,7 +3,7 @@
  * 从 App 组件下沉的问数会话逻辑：消息列表、SSE 事件消费、流式中断控制。
  * 放在 App 层调用，切换到数据页面再切回来时对话不丢失。
  */
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { HttpAgent } from "@ag-ui/client";
 import { runAgUiQuery } from "../lib/agUiApi";
 import type { AgentEvent, ChatMessage, StepState } from "../types/agent";
@@ -32,11 +32,6 @@ export function useChatSession() {
 
   const canSubmit = draft.trim().length > 0 && !isStreaming;
 
-  const completedCount = useMemo(
-    () => messages.filter((message) => message.role === "assistant" && message.status === "done").length,
-    [messages],
-  );
-
   const startQuery = async (rawQuery = draft) => {
     const query = rawQuery.trim();
     if (!query || isStreaming) return;
@@ -62,7 +57,15 @@ export function useChatSession() {
     setDraft("");
     setMessages((current) => [...current, userMessage, assistantMessage]);
 
+    // 追踪本次回复是否已开始接收正文流，避免多段 text 分片在 result 到达后互相覆盖
+    let hasReceivedText = false;
+
     const onEvent = (event: AgentEvent) => {
+      const isFirstTextChunk = event.type === "text" && !hasReceivedText;
+      if (event.type === "text") {
+        hasReceivedText = true;
+      }
+
       setMessages((current) =>
         current.map((message) => {
           if (message.id !== assistantId) return message;
@@ -70,7 +73,10 @@ export function useChatSession() {
           if (event.type === "progress") {
             return {
               ...message,
-              content: event.status === "running" ? `正在执行：${event.step}` : message.content,
+              content:
+                !hasReceivedText && event.status === "running"
+                  ? `正在执行：${event.step}`
+                  : message.content,
               steps: upsertStep(message.steps, event),
             };
           }
@@ -79,15 +85,15 @@ export function useChatSession() {
             return {
               ...message,
               status: "done",
-              // 结果摘要由随后的标准文本消息事件负责，这里保留进行中的文案
+              // 结果摘要由随后的标准文本消息事件负责，这里保留当前文案
               content: message.content,
               result: event.data,
             };
           }
 
           if (event.type === "text") {
-            // 服务端文本消息在结果事件之后到达，作为最终文案；流式中则直接追加
-            const base = message.result !== undefined ? "" : message.content;
+            // 首段正文替换占位提示，后续分片持续追加
+            const base = isFirstTextChunk ? "" : message.content;
             return { ...message, content: base + event.delta };
           }
 
@@ -159,7 +165,6 @@ export function useChatSession() {
     setDraft,
     isStreaming,
     canSubmit,
-    completedCount,
     startQuery,
     stopQuery,
     clearConversation,

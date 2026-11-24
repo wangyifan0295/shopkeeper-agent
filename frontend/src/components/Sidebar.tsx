@@ -1,7 +1,7 @@
 /**
  * 侧栏导航组件
- * 工作台自己的外壳：衬线字标 + 视图导航（对话 / 选手榜 / 棋手榜）
- * + 对话专属面板（新会话、样例）。选中态 = 余烬色 3px 左侧填充条 + 吸烟井底
+ * 工作台外壳：衬线字标 + 视图导航（对话 / 选手榜 / 棋手榜 / 对局记录）
+ * + 对话专属新会话按钮 + 底部极简数仓概况区。
  */
 import {
   Crown,
@@ -11,11 +11,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../lib/format";
-import { examples } from "../lib/examples";
 import type { ChatSession } from "../hooks/useChatSession";
+import type { StatsOverview } from "../types/stats";
 import type { AppView, NavView } from "../types/view";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "Vite /api proxy";
 
 const NAV_ITEMS: Array<{ view: NavView; label: string; icon: LucideIcon }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
@@ -28,12 +26,11 @@ type SidebarProps = {
   view: AppView;
   onNavigate: (view: NavView) => void;
   chat: ChatSession;
+  overview: StatsOverview | null;
 };
 
-export function Sidebar({ view, onNavigate, chat }: SidebarProps) {
-  // 选手详情属于选手榜分支，停留在选手榜导航项上高亮
-  const isActive = (item: NavView) =>
-    view === item || (view === "player-detail" && item === "players");
+export function Sidebar({ view, onNavigate, chat, overview }: SidebarProps) {
+  const isActive = (item: NavView) => view === item;
 
   return (
     <aside className="hidden min-h-0 flex-col border-r border-rule lg:flex">
@@ -74,7 +71,7 @@ export function Sidebar({ view, onNavigate, chat }: SidebarProps) {
         </nav>
 
         {view === "chat" && (
-          <section className="space-y-3 px-1">
+          <section className="px-1">
             <button
               type="button"
               onClick={chat.clearConversation}
@@ -83,37 +80,35 @@ export function Sidebar({ view, onNavigate, chat }: SidebarProps) {
             >
               新会话
             </button>
-
-            <div>
-              <p className="label px-3 pb-2">试试这些</p>
-              <div className="space-y-1.5">
-                {examples.map((example) => (
-                  <button
-                    key={example}
-                    type="button"
-                    disabled={chat.isStreaming}
-                    onClick={() => chat.startQuery(example)}
-                    className="w-full rounded-well px-3 py-2.5 text-left text-sm leading-6 text-ink-2 transition hover:bg-paper-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
           </section>
         )}
       </div>
 
-      <div className="space-y-1.5 border-t border-rule px-5 py-4 text-xs">
-        <div className="flex items-center justify-between gap-3">
-          <span className="label">API</span>
-          <span className="truncate font-mono text-muted">{API_BASE_URL}</span>
+      {overview && (
+        <div className="border-t border-rule px-5 py-4">
+          <p className="label mb-2.5 text-xs">数仓概况</p>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
+            <div>
+              <dt className="text-muted">收录对局</dt>
+              <dd className="figure mt-0.5 text-sm text-ink">{overview.matches} 场</dd>
+            </div>
+            <div>
+              <dt className="text-muted">参赛选手</dt>
+              <dd className="figure mt-0.5 text-sm text-ink">{overview.players} 位</dd>
+            </div>
+            <div>
+              <dt className="text-muted">可用棋手</dt>
+              <dd className="figure mt-0.5 text-sm text-ink">{overview.lords} 位</dd>
+            </div>
+            <div>
+              <dt className="text-muted">最近更新</dt>
+              <dd className="num mt-0.5 truncate text-sm text-ink-2">
+                {overview.latest_date ?? "—"}
+              </dd>
+            </div>
+          </dl>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="label">完成</span>
-          <span className="num text-muted">{chat.completedCount}</span>
-        </div>
-      </div>
+      )}
     </aside>
   );
 }
