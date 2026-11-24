@@ -67,6 +67,15 @@ async def get_overview_handler(
     return await stats_repository.get_overview()
 
 
+@stats_router.get("/api/stats/dashboard")
+async def get_dashboard_handler(
+    stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
+):
+    """返回数据大盘聚合数据：概况、禁用阵营分布与火热选手"""
+
+    return await stats_repository.get_dashboard()
+
+
 @stats_router.get("/api/stats/matches")
 async def list_matches_handler(
     stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
@@ -76,15 +85,18 @@ async def list_matches_handler(
     faction: Annotated[str, Query(description="禁用阵营")] = "",
     # 出场棋手精确匹配，空串表示不过滤
     lord: Annotated[str, Query(description="出场棋手")] = "",
+    # 对局小时精确匹配（0-23），None 表示不过滤
+    slot_hour: Annotated[int | None, Query(ge=0, le=23, description="对局小时（0-23）")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
-    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营与棋手下拉真值"""
+    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营、棋手与小时下拉真值"""
 
     return await stats_repository.list_matches(
         search=search.strip(),
         faction=faction.strip(),
         lord=lord.strip(),
+        slot_hour=slot_hour,
         page=page,
         page_size=page_size,
     )

@@ -232,12 +232,14 @@ class DWStatsRepository:
         search: str = "",
         faction: str = "",
         lord: str = "",
+        slot_hour: int | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> dict:
         """分页查询对局记录：每场附带六人明细（按名次升序），冠军单独带出
 
-        筛选在服务端完成：search 匹配该场任意参赛选手名，faction 匹配禁用阵营，lord 匹配出场棋手
+        筛选在服务端完成：search 匹配该场任意参赛选手名，faction 匹配禁用阵营，
+        lord 匹配出场棋手，slot_hour 匹配对局小时
         """
 
         offset = (page - 1) * page_size
@@ -254,21 +256,23 @@ class DWStatsRepository:
             " and fp2.lord_name = :lord)" if lord else ""
         )
         faction_condition = "and fact_match.banned_faction = :faction" if faction else ""
-        where = f"where 1 = 1 {search_condition} {lord_condition} {faction_condition}"
+        hour_condition = "and fact_match.slot_hour = :slot_hour" if slot_hour is not None else ""
+        where = f"where 1 = 1 {search_condition} {lord_condition} {faction_condition} {hour_condition}"
 
-        # 冠军用条件聚合带出，避免为主表再 join 一次；join 后列名全部限定表名防歧义
+        # 冠军用条件聚合带出，避免为主表再 join 一次；按日期 + 小时倒序排列
         sql = f"""
             select
                 fact_match.match_id,
                 fact_match.match_date,
+                fact_match.slot_hour,
                 fact_match.banned_faction,
                 max(case when fact_match_player.final_place = 1 then fact_match_player.player_name end) as champion_player,
                 max(case when fact_match_player.final_place = 1 then fact_match_player.lord_name end) as champion_lord
             from fact_match
             left join fact_match_player on fact_match_player.match_id = fact_match.match_id
             {where}
-            group by fact_match.match_id, fact_match.match_date, fact_match.banned_faction
-            order by fact_match.match_date desc, fact_match.match_id desc
+            group by fact_match.match_id, fact_match.match_date, fact_match.slot_hour, fact_match.banned_faction
+            order by fact_match.match_date desc, fact_match.slot_hour desc, fact_match.match_id desc
             limit :page_size offset :offset
         """
         result = await self.session.execute(
@@ -277,6 +281,7 @@ class DWStatsRepository:
                 "search": search,
                 "faction": faction,
                 "lord": lord,
+                "slot_hour": slot_hour,
                 "page_size": page_size,
                 "offset": offset,
             },
@@ -291,7 +296,7 @@ class DWStatsRepository:
         """
         count_result = await self.session.execute(
             text(count_sql),
-            {"search": search, "faction": faction, "lord": lord},
+            {"search": search, "faction": faction, "lord": lord, "slot_hour": slot_hour},
         )
         total = count_result.scalar() or 0
 
@@ -321,8 +326,9 @@ class DWStatsRepository:
         for row in rows:
             row["players"] = players[row["match_id"]]
             row["match_date"] = str(row["match_date"])
+            row["slot_hour"] = int(row["slot_hour"]) if row["slot_hour"] is not None else 0
 
-        # 禁用阵营与棋手下拉的真值来自维表，目录变化时页面自适应
+        # 禁用阵营、棋手与小时下拉的真值来自数据库，目录变化时页面自适应
         faction_result = await self.session.execute(
             text("select faction_name from dim_faction order by faction_name")
         )
@@ -333,6 +339,11 @@ class DWStatsRepository:
         )
         lords = [row[0] for row in lord_list_result.fetchall()]
 
+        hours_result = await self.session.execute(
+            text("select distinct slot_hour from fact_match order by slot_hour desc")
+        )
+        hours = [int(row[0]) for row in hours_result.fetchall() if row[0] is not None]
+
         return {
             "rows": rows,
             "total": total,
@@ -340,6 +351,7 @@ class DWStatsRepository:
             "page_size": page_size,
             "factions": factions,
             "lords": lords,
+            "hours": hours,
         }
 
     async def get_overview(self) -> dict:
@@ -412,6 +424,67 @@ class DWStatsRepository:
         return {
             **summary_rows[0],
             "player_stats": _float_rows(players_result.mappings().fetchall()),
+        }
+
+    async def get_dashboard(self) -> dict:
+        """查询数据大盘所需的全局聚合数据：概况、禁用阵营分布与火热选手"""
+
+        overview = await self.get_overview()
+
+        faction_sql = """
+            select
+                dim_faction.faction_name as faction,
+                count(fact_match.match_id) as matches
+            from dim_faction
+            left join fact_match on fact_match.banned_faction = dim_faction.faction_name
+            group by dim_faction.faction_name
+            order by matches desc, dim_faction.faction_name asc
+        """
+        faction_result = await self.session.execute(text(faction_sql))
+        banned_factions = [
+            {
+                "faction": row["faction"],
+                "matches": int(row["matches"] or 0),
+            }
+            for row in faction_result.mappings().fetchall()
+        ]
+
+        # 近期火热选手 Top 8：总场次 >= 5 的选手按近 8 场吃鸡率降序
+        hot_sql = """
+            with ranked as (
+                select
+                    fmp.player_name,
+                    fmp.final_place,
+                    row_number() over (
+                        partition by fmp.player_name
+                        order by fm.match_date desc, fm.match_id desc
+                    ) as rn
+                from fact_match_player fmp
+                left join fact_match fm on fm.match_id = fmp.match_id
+            )
+            select
+                player_name as player,
+                count(*) as matches,
+                round(sum(final_place = 1) / count(*) * 100, 2) as win_rate,
+                sum(case when rn <= 8 then 1 else 0 end) as recent_matches,
+                round(
+                    sum(case when rn <= 8 and final_place = 1 then 1 else 0 end)
+                    / sum(case when rn <= 8 then 1 else 0 end) * 100,
+                    2
+                ) as recent_win_rate
+            from ranked
+            group by player_name
+            having matches >= 5
+            order by recent_win_rate desc, win_rate desc, matches desc
+            limit 8
+        """
+        hot_result = await self.session.execute(text(hot_sql))
+        hot_players = _float_rows(hot_result.mappings().fetchall())
+
+        return {
+            "overview": overview,
+            "banned_factions": banned_factions,
+            "hot_players": hot_players,
         }
 
     async def list_lords(self) -> list[dict]:
