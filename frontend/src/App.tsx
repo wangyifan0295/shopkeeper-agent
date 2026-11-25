@@ -315,6 +315,7 @@ export default function App() {
         {view === "dashboard" && (
           <DashboardView
             onSelectPlayer={openPlayerDetail}
+            onSelectLord={openLordDetail}
             onBrowseFactionMatches={openMatchesForFaction}
             headerExtra={desktopThemeSwitcher}
           />

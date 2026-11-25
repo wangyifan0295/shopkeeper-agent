@@ -146,4 +146,5 @@ export type DashboardData = {
   overview: StatsOverview;
   banned_factions: BannedFactionStat[];
   hot_players: HotPlayerStat[];
+  lords: LordStatRow[];
 };

@@ -71,7 +71,7 @@ async def get_overview_handler(
 async def get_dashboard_handler(
     stats_repository: Annotated[DWStatsRepository, Depends(get_dw_stats_repository)],
 ):
-    """返回数据大盘聚合数据：概况、禁用阵营分布与火热选手"""
+    """返回数据大盘聚合数据：概况、禁用阵营分布、火热选手与棋手榜"""
 
     return await stats_repository.get_dashboard()
 

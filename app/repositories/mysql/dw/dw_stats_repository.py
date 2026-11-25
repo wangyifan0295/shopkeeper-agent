@@ -505,11 +505,13 @@ class DWStatsRepository:
         """
         hot_result = await self.session.execute(text(hot_sql))
         hot_players = _float_rows(hot_result.mappings().fetchall())
+        lords = await self.list_lords()
 
         return {
             "overview": overview,
             "banned_factions": banned_factions,
             "hot_players": hot_players,
+            "lords": lords,
         }
 
     async def list_lords(self) -> list[dict]:
