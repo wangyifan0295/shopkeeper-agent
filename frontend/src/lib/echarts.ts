@@ -40,6 +40,7 @@ export type ChartPalette = {
   muted: string;
   rule: string;
   accent: string;
+  accentInk: string;
   accentSoft: string;
   success: string;
   successSoft: string;
@@ -99,6 +100,7 @@ export function readChartPalette(): ChartPalette {
     muted: toRgba(getVar("--color-muted")),
     rule: toRgba(getVar("--color-rule")),
     accent,
+    accentInk: toRgba(getVar("--color-accent-ink")),
     accentSoft: toRgba(getVar("--color-accent"), 0.16),
     success,
     successSoft: toRgba(getVar("--color-success"), 0.16),

@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 
 from app.api.lifespan import lifespan
 from app.api.routers.agui_router import agui_router
+from app.api.routers.predict_router import predict_router
 from app.api.routers.stats_router import stats_router
 from app.core.context import request_id_ctx_var
 
@@ -23,6 +24,9 @@ app.include_router(agui_router)
 
 # 数据统计只读路由：选手榜 / 选手详情 / 棋手榜，不走 LLM 问数链路
 app.include_router(stats_router)
+
+# 胜率预测路由：OpenSkill + Plackett-Luce 概率预测与可选 AI 赛前点评
+app.include_router(predict_router)
 
 
 @app.middleware("http")

@@ -21,6 +21,7 @@ from app.clients.mysql_client_manager import (
 from app.clients.qdrant_client_manager import qdrant_client_manager
 from app.repositories.es.value_es_repository import ValueESRepository
 from app.repositories.mysql.dw.dw_mysql_repository import DWMySQLRepository
+from app.repositories.mysql.dw.dw_predict_repository import DWPredictRepository
 from app.repositories.mysql.dw.dw_stats_repository import DWStatsRepository
 from app.repositories.mysql.meta.meta_mysql_repository import MetaMySQLRepository
 from app.repositories.qdrant.column_qdrant_repository import ColumnQdrantRepository
@@ -71,6 +72,14 @@ async def get_dw_stats_repository(
     """基于请求级数仓 Session 创建统计仓储"""
 
     return DWStatsRepository(session)
+
+
+async def get_dw_predict_repository(
+    session: Annotated[AsyncSession, Depends(get_dw_session)],
+) -> DWPredictRepository:
+    """基于请求级数仓 Session 创建胜率预测仓储"""
+
+    return DWPredictRepository(session)
 
 
 async def get_column_qdrant_repository() -> ColumnQdrantRepository:

@@ -172,6 +172,59 @@
     white-space: nowrap;
   }
 
+  /* 语义软底徽章：使用 color-mix 兼容四套深浅主题，避免 Tailwind CSS 变量透明度失效导致糊字 */
+  .chip-positive {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--color-success) 15%, var(--color-paper));
+    border: var(--rule-hair) solid color-mix(in oklab, var(--color-success) 42%, transparent);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-success);
+    white-space: nowrap;
+  }
+
+  .chip-negative {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--color-error) 15%, var(--color-paper));
+    border: var(--rule-hair) solid color-mix(in oklab, var(--color-error) 42%, transparent);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-error);
+    white-space: nowrap;
+  }
+
+  .chip-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--color-accent) 16%, var(--color-paper));
+    border: var(--rule-hair) solid color-mix(in oklab, var(--color-accent) 48%, transparent);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-accent);
+    white-space: nowrap;
+  }
+
+  /* 强调边框容器：用于 AI 点评卡片与核心摘要高亮 */
+  .well-accent {
+    background: color-mix(in oklab, var(--color-accent) 7%, var(--color-paper-2));
+    border: var(--rule-hair) solid color-mix(in oklab, var(--color-accent) 36%, transparent);
+    border-radius: var(--radius-well);
+  }
+
   /* 数据表：只有横向规则，无外框无卡片（craft §9） */
   .data-table {
     width: 100%;

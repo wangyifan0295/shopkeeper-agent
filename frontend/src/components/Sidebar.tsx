@@ -8,6 +8,7 @@ import {
   Crown,
   MessagesSquare,
   Swords,
+  Target,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import type { AppView, NavView } from "../types/view";
 const NAV_ITEMS: Array<{ view: NavView; label: string; icon: LucideIcon }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
   { view: "dashboard", label: "数据大盘", icon: BarChart3 },
+  { view: "predict", label: "胜率预测", icon: Target },
   { view: "players", label: "选手榜", icon: Users },
   { view: "lords", label: "棋手榜", icon: Crown },
   { view: "matches", label: "对局记录", icon: Swords },

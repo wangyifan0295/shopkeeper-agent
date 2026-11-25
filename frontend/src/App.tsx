@@ -4,7 +4,7 @@
  * + 互斥右侧抽屉（选手详情 / 棋手详情，支持互相穿透且不卸载背后列表状态）。
  * 使用轻量 URL Hash 同步视图、筛选与抽屉参数，支持刷新保持与浏览器前进/后退。
  */
-import { BarChart3, Crown, MessagesSquare, Swords, Users } from "lucide-react";
+import { BarChart3, Crown, MessagesSquare, Swords, Target, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
@@ -15,6 +15,7 @@ import { LordsView } from "./views/LordsView";
 import { MatchesView } from "./views/MatchesView";
 import { PlayerDetailDrawer } from "./views/PlayerDetailView";
 import { PlayersView } from "./views/PlayersView";
+import { PredictView } from "./views/PredictView";
 import { useChatSession } from "./hooks/useChatSession";
 import { useTheme } from "./hooks/useTheme";
 import { cn } from "./lib/format";
@@ -22,10 +23,11 @@ import { fetchOverview } from "./lib/statsApi";
 import type { StatsOverview } from "./types/stats";
 import type { NavView } from "./types/view";
 
-// 窄屏导航条：与桌面端侧栏保持一致的 5 个核心视图入口
+// 窄屏导航条：与桌面端侧栏保持一致的 6 个核心视图入口
 const NAV_ITEMS: Array<{ view: NavView; label: string; icon: typeof Users }> = [
   { view: "chat", label: "对话", icon: MessagesSquare },
   { view: "dashboard", label: "大盘", icon: BarChart3 },
+  { view: "predict", label: "预测", icon: Target },
   { view: "players", label: "选手榜", icon: Users },
   { view: "lords", label: "棋手榜", icon: Crown },
   { view: "matches", label: "对局", icon: Swords },
@@ -58,6 +60,15 @@ function parseHash(rawHash: string): RouteState {
   if (pathPart === "dashboard") {
     return {
       view: "dashboard",
+      drawer,
+      matchesPresetPlayer: null,
+      matchesPresetLord: null,
+      matchesPresetFaction: null,
+    };
+  }
+  if (pathPart === "predict") {
+    return {
+      view: "predict",
       drawer,
       matchesPresetPlayer: null,
       matchesPresetLord: null,
@@ -317,6 +328,13 @@ export default function App() {
             onSelectPlayer={openPlayerDetail}
             onSelectLord={openLordDetail}
             onBrowseFactionMatches={openMatchesForFaction}
+            headerExtra={desktopThemeSwitcher}
+          />
+        )}
+        {view === "predict" && (
+          <PredictView
+            onSelectPlayer={openPlayerDetail}
+            onSelectLord={openLordDetail}
             headerExtra={desktopThemeSwitcher}
           />
         )}
