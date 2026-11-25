@@ -87,18 +87,22 @@ async def list_matches_handler(
     lord: Annotated[str, Query(description="出场棋手")] = "",
     # 对局小时精确匹配（0-23），None 表示不过滤
     slot_hour: Annotated[int | None, Query(ge=0, le=23, description="对局小时（0-23）")] = None,
-    page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    # 对局日期精确匹配（YYYY-MM-DD），空串表示不过滤
+    match_date: Annotated[str, Query(description="对局日期（YYYY-MM-DD）")] = "",
+    # 按完整比赛日分批加载：跳过前 days_offset 个比赛日，取接下来的 days_limit 天
+    days_offset: Annotated[int, Query(ge=0)] = 0,
+    days_limit: Annotated[int, Query(ge=1, le=30)] = 7,
 ):
-    """分页返回对局记录：每场含六人明细（名次升序）与冠军信息，另附阵营、棋手与小时下拉真值"""
+    """按完整比赛日分批返回对局记录：保证同一天不被拆断，并附筛选项真值"""
 
     return await stats_repository.list_matches(
         search=search.strip(),
         faction=faction.strip(),
         lord=lord.strip(),
         slot_hour=slot_hour,
-        page=page,
-        page_size=page_size,
+        match_date=match_date.strip(),
+        days_offset=days_offset,
+        days_limit=days_limit,
     )
 
 

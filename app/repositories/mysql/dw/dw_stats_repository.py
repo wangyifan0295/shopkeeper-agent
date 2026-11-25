@@ -233,18 +233,16 @@ class DWStatsRepository:
         faction: str = "",
         lord: str = "",
         slot_hour: int | None = None,
-        page: int = 1,
-        page_size: int = 20,
+        match_date: str = "",
+        days_offset: int = 0,
+        days_limit: int = 7,
     ) -> dict:
-        """分页查询对局记录：每场附带六人明细（按名次升序），冠军单独带出
+        """按完整自然日分批查询对局记录：同一天永不拆断，每场附带六人明细与冠军
 
-        筛选在服务端完成：search 匹配该场任意参赛选手名，faction 匹配禁用阵营，
-        lord 匹配出场棋手，slot_hour 匹配对局小时
+        筛选在服务端完成：search 匹配任意参赛选手，faction 匹配禁用阵营，
+        lord 匹配出场棋手，slot_hour 匹配对局小时，match_date 精确筛选某一天
         """
 
-        offset = (page - 1) * page_size
-
-        # 选手与棋手筛选均为存在性行子查询：该场六人里任一人命中即保留整场
         search_condition = (
             "and exists (select 1 from fact_match_player fp"
             " where fp.match_id = fact_match.match_id"
@@ -257,50 +255,74 @@ class DWStatsRepository:
         )
         faction_condition = "and fact_match.banned_faction = :faction" if faction else ""
         hour_condition = "and fact_match.slot_hour = :slot_hour" if slot_hour is not None else ""
-        where = f"where 1 = 1 {search_condition} {lord_condition} {faction_condition} {hour_condition}"
+        date_condition = "and fact_match.match_date = :match_date" if match_date else ""
 
-        # 冠军用条件聚合带出，避免为主表再 join 一次；按日期 + 小时倒序排列
-        sql = f"""
-            select
-                fact_match.match_id,
-                fact_match.match_date,
-                fact_match.slot_hour,
-                fact_match.banned_faction,
-                max(case when fact_match_player.final_place = 1 then fact_match_player.player_name end) as champion_player,
-                max(case when fact_match_player.final_place = 1 then fact_match_player.lord_name end) as champion_lord
-            from fact_match
-            left join fact_match_player on fact_match_player.match_id = fact_match.match_id
-            {where}
-            group by fact_match.match_id, fact_match.match_date, fact_match.slot_hour, fact_match.banned_faction
-            order by fact_match.match_date desc, fact_match.slot_hour desc, fact_match.match_id desc
-            limit :page_size offset :offset
-        """
-        result = await self.session.execute(
-            text(sql),
-            {
-                "search": search,
-                "faction": faction,
-                "lord": lord,
-                "slot_hour": slot_hour,
-                "page_size": page_size,
-                "offset": offset,
-            },
+        base_params = {
+            "search": search,
+            "faction": faction,
+            "lord": lord,
+            "slot_hour": slot_hour,
+            "match_date": match_date,
+        }
+
+        # 先按除 match_date 外的条件汇总所有可选日期与每日场次，供日期下拉随时切换
+        where_without_date = (
+            f"where 1 = 1 {search_condition} {lord_condition} {faction_condition} {hour_condition}"
         )
-        rows = _float_rows(result.mappings().fetchall())
-
-        # 命中总数独立 count，分页器与跳页输入框都依赖它
-        count_sql = f"""
-            select count(*) as total
+        all_dates_sql = f"""
+            select fact_match.match_date, count(*) as day_matches
             from fact_match
-            {where}
+            {where_without_date}
+            group by fact_match.match_date
+            order by fact_match.match_date desc
         """
-        count_result = await self.session.execute(
-            text(count_sql),
-            {"search": search, "faction": faction, "lord": lord, "slot_hour": slot_hour},
-        )
-        total = count_result.scalar() or 0
+        all_dates_result = await self.session.execute(text(all_dates_sql), base_params)
+        available_dates = [
+            {"date": str(row[0]), "matches": int(row[1] or 0)}
+            for row in all_dates_result.fetchall()
+        ]
 
-        # 只取本页场次的六人明细，一次 in 查询后在内存里归组
+        # 若指定了某一天，则目标日期桶只保留该日，否则直接复用全部命中日期桶
+        target_buckets = (
+            [item for item in available_dates if item["date"] == match_date]
+            if match_date
+            else available_dates
+        )
+        total_days = len(target_buckets)
+        total = sum(item["matches"] for item in target_buckets)
+
+        sliced_buckets = target_buckets[days_offset : days_offset + days_limit]
+        selected_dates = [item["date"] for item in sliced_buckets]
+        loaded_days = len(sliced_buckets)
+        next_offset = days_offset + loaded_days
+        remaining_days = max(0, total_days - next_offset)
+        remaining_matches = sum(item["matches"] for item in target_buckets[next_offset:])
+
+        where = f"{where_without_date} {date_condition}"
+        rows: list[dict] = []
+        if selected_dates:
+            sql = f"""
+                select
+                    fact_match.match_id,
+                    fact_match.match_date,
+                    fact_match.slot_hour,
+                    fact_match.banned_faction,
+                    max(case when fact_match_player.final_place = 1 then fact_match_player.player_name end) as champion_player,
+                    max(case when fact_match_player.final_place = 1 then fact_match_player.lord_name end) as champion_lord
+                from fact_match
+                left join fact_match_player on fact_match_player.match_id = fact_match.match_id
+                {where}
+                and fact_match.match_date in :selected_dates
+                group by fact_match.match_id, fact_match.match_date, fact_match.slot_hour, fact_match.banned_faction
+                order by fact_match.match_date desc, fact_match.slot_hour desc, fact_match.match_id desc
+            """
+            result = await self.session.execute(
+                text(sql).bindparams(bindparam("selected_dates", expanding=True)),
+                {**base_params, "selected_dates": selected_dates},
+            )
+            rows = _float_rows(result.mappings().fetchall())
+
+        # 只取本批场次的六人明细，一次 in 查询后在内存里归组
         match_ids = [row["match_id"] for row in rows]
         players: dict[str, list[dict]] = {match_id: [] for match_id in match_ids}
         if match_ids:
@@ -347,11 +369,14 @@ class DWStatsRepository:
         return {
             "rows": rows,
             "total": total,
-            "page": page,
-            "page_size": page_size,
+            "total_days": total_days,
+            "loaded_days": loaded_days,
+            "remaining_days": remaining_days,
+            "remaining_matches": remaining_matches,
             "factions": factions,
             "lords": lords,
             "hours": hours,
+            "dates": available_dates,
         }
 
     async def get_overview(self) -> dict:

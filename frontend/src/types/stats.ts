@@ -90,15 +90,24 @@ export type MatchRow = {
   players: MatchPlayerRow[];
 };
 
-/** 对局记录分页响应：factions、lords 与 hours 为筛选下拉的真值 */
+/** 日期筛选下拉项：日期与当日场次 */
+export type MatchDateOption = {
+  date: string;
+  matches: number;
+};
+
+/** 对局记录按天分批响应：同一天永不被拆断，附全部筛选项真值 */
 export type MatchesPage = {
   rows: MatchRow[];
   total: number;
-  page: number;
-  page_size: number;
+  total_days: number;
+  loaded_days: number;
+  remaining_days: number;
+  remaining_matches: number;
   factions: string[];
   lords: string[];
   hours: number[];
+  dates: MatchDateOption[];
 };
 
 /** 单个棋手下，某位选手的使用表现 */

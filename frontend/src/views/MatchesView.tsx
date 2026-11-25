@@ -1,29 +1,30 @@
 /**
  * 对局记录视图
- * 按日期分组（可折叠整天）+ 当天内按 slot_hour 小时时间轴直排（每整点一场）：
- * - 筛选：选手名搜索 + 棋手下拉 + 禁用阵营下拉 + 时段下拉 + 一键折叠日期/展开本页明细
- * - 单场行左侧展示整点时间（如 23:00），点击行展开左右分栏 2×3 紧凑对阵格（前三/后三）
- * - 命中筛选选手或棋手时直接在折叠行透出本场名次，展开后高亮对应卡片
+ * 按完整自然日分组（可折叠整天）+ 当天内按 slot_hour 小时时间轴直排：
+ * - 去掉传统条数分页，改为每次加载完整 7 个比赛日 + 底部「加载更早」，绝不将同一天拆两半
+ * - 筛选：选手名搜索 + 日期快速定位 + 棋手下拉 + 禁用阵营下拉 + 时段下拉
+ * - 点击单场展开左右分栏 2×3 紧凑对阵格（前三/后三），选手名与棋手名均可点开详情抽屉
  */
 import {
   Ban,
+  Calendar,
   ChevronDown,
   ChevronRight,
   ChevronsDown,
   ChevronsUp,
   Clock,
   Crown,
+  LoaderCircle,
 } from "lucide-react";
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { FilterSelect } from "../components/FilterSelect";
-import { Pagination } from "../components/Pagination";
 import { SearchInput } from "../components/SearchInput";
 import { fetchMatchesPage } from "../lib/statsApi";
 import { cn } from "../lib/format";
 import type { MatchPlayerRow, MatchRow, MatchesPage } from "../types/stats";
 
-const PAGE_SIZE = 20;
+const DAYS_PER_BATCH = 7;
 const SKELETON_GROUPS = 3;
 
 type MatchesViewProps = {
@@ -82,15 +83,22 @@ export function MatchesView({
   const [faction, setFaction] = useState(presetFaction ?? "");
   const [lord, setLord] = useState(presetLord ?? "");
   const [slotHour, setSlotHour] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<MatchesPage | null>(null);
+  const [matchDate, setMatchDate] = useState("");
+
+  const [rows, setRows] = useState<MatchRow[]>([]);
+  const [meta, setMeta] = useState<Omit<MatchesPage, "rows"> | null>(null);
+  const [loadedDays, setLoadedDays] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
   // 展开态按场号记录，可同时开多场
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // 收起态按日期记录，默认全部日期展开
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+  // 防止过期的“加载更多”响应污染新筛选条件
+  const requestSeqRef = useRef(0);
 
   useEffect(() => {
     const next = presetSearch ?? "";
@@ -111,49 +119,89 @@ export function MatchesView({
     return () => clearTimeout(timer);
   }, [search]);
 
+  // 筛选条件或手动重试变化时，从最近 7 个完整比赛日重新加载
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, faction, lord, slotHour]);
-
-  useEffect(() => {
-    let cancelled = false;
+    const seq = ++requestSeqRef.current;
     setLoading(true);
+    setLoadingMore(false);
+
     fetchMatchesPage({
       search: debouncedSearch,
       faction,
       lord,
       slotHour,
-      page,
-      pageSize: PAGE_SIZE,
+      matchDate,
+      daysOffset: 0,
+      daysLimit: DAYS_PER_BATCH,
     })
       .then((result) => {
-        if (!cancelled) {
-          setData(result);
-          setError(null);
-        }
+        if (seq !== requestSeqRef.current) return;
+        const { rows: nextRows, ...nextMeta } = result;
+        setRows(nextRows);
+        setMeta(nextMeta);
+        setLoadedDays(result.loaded_days);
+        setError(null);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (seq !== requestSeqRef.current) return;
+        setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (seq === requestSeqRef.current) {
+          setLoading(false);
+        }
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearch, faction, lord, slotHour, page, refreshKey]);
+  }, [debouncedSearch, faction, lord, slotHour, matchDate, refreshKey]);
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
+  const loadMoreDays = () => {
+    if (loading || loadingMore || !meta || meta.remaining_days <= 0) return;
+    const seq = requestSeqRef.current;
+    setLoadingMore(true);
+
+    fetchMatchesPage({
+      search: debouncedSearch,
+      faction,
+      lord,
+      slotHour,
+      matchDate,
+      daysOffset: loadedDays,
+      daysLimit: DAYS_PER_BATCH,
+    })
+      .then((result) => {
+        if (seq !== requestSeqRef.current) return;
+        const { rows: moreRows, ...nextMeta } = result;
+        setRows((current) => {
+          const seen = new Set(current.map((item) => item.match_id));
+          const appended = moreRows.filter((item) => !seen.has(item.match_id));
+          return [...current, ...appended];
+        });
+        setMeta(nextMeta);
+        setLoadedDays((current) => current + result.loaded_days);
+        setError(null);
+      })
+      .catch((err) => {
+        if (seq !== requestSeqRef.current) return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (seq === requestSeqRef.current) {
+          setLoadingMore(false);
+        }
+      });
+  };
+
   const hasFilter =
-    debouncedSearch !== "" || faction !== "" || lord !== "" || slotHour !== null;
+    debouncedSearch !== "" ||
+    faction !== "" ||
+    lord !== "" ||
+    slotHour !== null ||
+    matchDate !== "";
   const searchKeyword = debouncedSearch.toLowerCase();
   const showMatchedBadge = searchKeyword !== "" || lord !== "";
 
-  const pageRows = data?.rows ?? [];
-
   const dateGroups = useMemo<DateGroup[]>(() => {
     const map = new Map<string, MatchRow[]>();
-    for (const row of pageRows) {
+    for (const row of rows) {
       const list = map.get(row.match_date);
       if (list) {
         list.push(row);
@@ -166,10 +214,10 @@ export function MatchesView({
       weekday: formatWeekday(date),
       matches: [...matches].sort((a, b) => b.slot_hour - a.slot_hour),
     }));
-  }, [pageRows]);
+  }, [rows]);
 
   const allExpanded =
-    pageRows.length > 0 && pageRows.every((row) => expanded.has(row.match_id));
+    rows.length > 0 && rows.every((row) => expanded.has(row.match_id));
   const allDatesCollapsed =
     dateGroups.length > 0 && dateGroups.every((group) => collapsedDates.has(group.date));
 
@@ -209,13 +257,13 @@ export function MatchesView({
     });
   };
 
-  const toggleAllCurrentPage = () => {
+  const toggleAllLoadedMatches = () => {
     setExpanded((current) => {
       const next = new Set(current);
       if (allExpanded) {
-        pageRows.forEach((row) => next.delete(row.match_id));
+        rows.forEach((row) => next.delete(row.match_id));
       } else {
-        pageRows.forEach((row) => next.add(row.match_id));
+        rows.forEach((row) => next.add(row.match_id));
       }
       return next;
     });
@@ -449,6 +497,8 @@ export function MatchesView({
     );
   };
 
+  const nextBatchDays = meta ? Math.min(DAYS_PER_BATCH, meta.remaining_days) : 0;
+
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
@@ -458,7 +508,12 @@ export function MatchesView({
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <p className="label num">
-            共 <span className="figure text-base text-ink-2">{data?.total ?? "—"}</span> 场
+            共 <span className="figure text-base text-ink-2">{meta?.total ?? "—"}</span> 场
+            {meta && meta.total_days > 0 && (
+              <span className="ml-1.5 hidden text-muted sm:inline">
+                / {meta.total_days} 天
+              </span>
+            )}
           </p>
           {headerExtra}
         </div>
@@ -466,7 +521,7 @@ export function MatchesView({
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
-          {/* 筛选条：选手名搜索 + 棋手 + 禁用阵营 + 时段 + 折叠/展开控制 */}
+          {/* 筛选条：选手名搜索 + 日期 + 棋手 + 禁用阵营 + 时段 + 折叠/展开控制 */}
           <div className="mb-6 flex flex-wrap items-center gap-3">
             <SearchInput
               value={search}
@@ -475,9 +530,23 @@ export function MatchesView({
               ariaLabel="按选手名筛选对局"
             />
             <FilterSelect
+              value={matchDate}
+              onChange={setMatchDate}
+              options={(meta?.dates ?? []).map((item) => ({
+                value: item.date,
+                label: `${item.date} · ${item.matches}场`,
+              }))}
+              placeholder="全部日期"
+              labelPrefix="日期"
+              icon={<Calendar className="h-3.5 w-3.5" aria-hidden="true" />}
+              searchable
+              searchPlaceholder="搜索日期（如 11-24）…"
+              ariaLabel="按日期筛选对局"
+            />
+            <FilterSelect
               value={lord}
               onChange={setLord}
-              options={(data?.lords ?? []).map((name) => ({ value: name, label: name }))}
+              options={(meta?.lords ?? []).map((name) => ({ value: name, label: name }))}
               placeholder="全部棋手"
               labelPrefix="棋手"
               icon={<Crown className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -488,7 +557,7 @@ export function MatchesView({
             <FilterSelect
               value={faction}
               onChange={setFaction}
-              options={(data?.factions ?? []).map((name) => ({ value: name, label: name }))}
+              options={(meta?.factions ?? []).map((name) => ({ value: name, label: name }))}
               placeholder="全部阵营"
               labelPrefix="禁用"
               icon={<Ban className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -497,7 +566,7 @@ export function MatchesView({
             <FilterSelect
               value={slotHour === null ? "" : String(slotHour)}
               onChange={(val) => setSlotHour(val === "" ? null : Number(val))}
-              options={(data?.hours ?? []).map((h) => ({
+              options={(meta?.hours ?? []).map((h) => ({
                 value: String(h),
                 label: formatHour(h),
               }))}
@@ -506,31 +575,31 @@ export function MatchesView({
               icon={<Clock className="h-3.5 w-3.5" aria-hidden="true" />}
               ariaLabel="按对局时段筛选"
             />
-            {pageRows.length > 0 && (
+            {rows.length > 0 && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={toggleAllDates}
                   className="btn btn-quiet shrink-0"
-                  title={allDatesCollapsed ? "展开本页所有日期分组" : "收起本页所有日期分组"}
+                  title={allDatesCollapsed ? "展开已加载的所有日期" : "收起已加载的所有日期"}
                 >
                   {allDatesCollapsed ? "展开日期" : "收起日期"}
                 </button>
                 <button
                   type="button"
-                  onClick={toggleAllCurrentPage}
+                  onClick={toggleAllLoadedMatches}
                   className="btn btn-quiet shrink-0"
-                  title={allExpanded ? "收起当前页所有对局明细" : "展开当前页所有对局明细"}
+                  title={allExpanded ? "收起已加载的所有对局明细" : "展开已加载的所有对局明细"}
                 >
                   {allExpanded ? (
                     <>
                       <ChevronsUp className="h-3.5 w-3.5" aria-hidden="true" />
-                      收起全部
+                      收起明细
                     </>
                   ) : (
                     <>
                       <ChevronsDown className="h-3.5 w-3.5" aria-hidden="true" />
-                      展开本页
+                      展开明细
                     </>
                   )}
                 </button>
@@ -543,7 +612,7 @@ export function MatchesView({
               message={error}
               onRetry={() => setRefreshKey((key) => key + 1)}
             />
-          ) : data === null ? (
+          ) : meta === null ? (
             <div className="space-y-4" aria-label="加载中">
               {Array.from({ length: SKELETON_GROUPS }).map((_, index) => (
                 <div key={index} className="well space-y-3 p-4">
@@ -571,6 +640,7 @@ export function MatchesView({
                         setFaction("");
                         setLord("");
                         setSlotHour(null);
+                        setMatchDate("");
                       }}
                       className="btn btn-quiet mt-4"
                     >
@@ -634,19 +704,37 @@ export function MatchesView({
                 </div>
               )}
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <span className="num text-sm text-muted">每页 {data.page_size} 场</span>
-                <Pagination
-                  page={data.page}
-                  totalPages={totalPages}
-                  disabled={loading}
-                  onChange={setPage}
-                />
-              </div>
-
-              <p className="label mt-6 leading-5">
-                按日期聚合并沿小时时间轴排列；点击日期头可整天折叠，点击单场展开六人明细（选手名与棋手名均可点进详情）。
-              </p>
+              {/* 底部按完整天加载更多 / 全部加载完成收尾 */}
+              {dateGroups.length > 0 && (
+                <div className="mt-6 flex flex-col items-center justify-center gap-2">
+                  {meta.remaining_days > 0 ? (
+                    <button
+                      type="button"
+                      onClick={loadMoreDays}
+                      disabled={loading || loadingMore}
+                      className="btn btn-quiet px-5"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          加载中…
+                        </>
+                      ) : (
+                        <>
+                          加载更早 {nextBatchDays} 天
+                          <span className="num text-muted">
+                            （还有 {meta.remaining_days} 天 · {meta.remaining_matches} 场）
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <p className="num text-xs text-muted">
+                      已加载全部 {meta.total_days} 天 · 共 {meta.total} 场对局
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

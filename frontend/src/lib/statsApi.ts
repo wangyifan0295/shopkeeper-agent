@@ -77,11 +77,12 @@ export type MatchesPageParams = {
   faction: string;
   lord: string;
   slotHour?: number | null;
-  page: number;
-  pageSize: number;
+  matchDate?: string;
+  daysOffset?: number;
+  daysLimit?: number;
 };
 
-/** 拉取对局记录一页：每场含六人明细，另返回阵营、棋手与小时下拉真值 */
+/** 按完整比赛日分批拉取对局记录：保证同一天不跨页拆断 */
 export function fetchMatchesPage(params: MatchesPageParams): Promise<MatchesPage> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
@@ -90,7 +91,8 @@ export function fetchMatchesPage(params: MatchesPageParams): Promise<MatchesPage
   if (params.slotHour !== null && params.slotHour !== undefined) {
     query.set("slot_hour", String(params.slotHour));
   }
-  query.set("page", String(params.page));
-  query.set("page_size", String(params.pageSize));
+  if (params.matchDate) query.set("match_date", params.matchDate);
+  if (params.daysOffset !== undefined) query.set("days_offset", String(params.daysOffset));
+  if (params.daysLimit !== undefined) query.set("days_limit", String(params.daysLimit));
   return requestJson(`${BASE_URL}/matches?${query.toString()}`);
 }
