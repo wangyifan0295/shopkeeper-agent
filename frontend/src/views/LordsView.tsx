@@ -119,7 +119,7 @@ export function LordsView({ onSelectLord, headerExtra }: LordsViewProps) {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule bg-sidebar px-4 lg:px-6">
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg">棋手榜</h1>
           <p className="label hidden sm:block">
@@ -129,7 +129,7 @@ export function LordsView({ onSelectLord, headerExtra }: LordsViewProps) {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <p className="label num">
-            共 <span className="figure text-base text-ink-2">{rows ? visibleRows.length : "—"}</span> 位
+            共 <span className="figure text-base text-ink">{rows ? visibleRows.length : "—"}</span> 位
           </p>
           {headerExtra}
         </div>
@@ -166,18 +166,18 @@ export function LordsView({ onSelectLord, headerExtra }: LordsViewProps) {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto lg:overflow-x-visible">
+            <div className="well px-2 py-1 max-lg:overflow-x-auto">
               <table className="data-table">
-                <thead className="sticky top-0 z-10 bg-paper">
+                <thead className="sticky top-0 z-10 bg-paper-2">
                   <tr>
-                    <th scope="col" className="w-12">名次</th>
+                    <th scope="col" className="w-12 first:rounded-tl-well">名次</th>
                     <th scope="col">棋手</th>
                     <th scope="col" className="cell-num">
                       {renderSortHeader(SORTABLE_COLUMNS[0])}
                     </th>
                     <th scope="col" className="cell-num">吃鸡数</th>
                     {SORTABLE_COLUMNS.slice(1).map((column) => (
-                      <th key={column.key} scope="col" className="cell-num">
+                      <th key={column.key} scope="col" className="cell-num last:rounded-tr-well">
                         {renderSortHeader(column)}
                       </th>
                     ))}
@@ -203,9 +203,9 @@ export function LordsView({ onSelectLord, headerExtra }: LordsViewProps) {
                     visibleRows.map((row, index) => {
                       const rank = index + 1;
                       return (
-                        <tr key={row.lord} className="transition hover:bg-paper-2">
+                        <tr key={row.lord} className="transition hover:bg-paper-3">
                           <td className={cn("figure", rankClass(rank))}>{rank}</td>
-                          <td className="font-medium">
+                          <td className="font-medium text-ink">
                             <button
                               type="button"
                               onClick={() => onSelectLord(row.lord)}
@@ -215,8 +215,8 @@ export function LordsView({ onSelectLord, headerExtra }: LordsViewProps) {
                               {row.lord}
                             </button>
                           </td>
-                          <td className="cell-num text-ink-2">{row.matches}</td>
-                          <td className="cell-num text-ink-2">{row.wins}</td>
+                          <td className="cell-num text-ink">{row.matches}</td>
+                          <td className="cell-num text-ink">{row.wins}</td>
                           <td className="cell-num">
                             <WinRate value={row.win_rate} />
                           </td>

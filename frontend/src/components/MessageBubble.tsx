@@ -123,7 +123,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
                     查看生成 SQL
                   </span>
                   {snapshotMeta.keywords.length > 0 && (
-                    <span className="truncate text-[11px] font-normal text-muted">
+                    <span className="truncate text-xs font-normal text-muted">
                       关键词：{snapshotMeta.keywords.join(" · ")}
                     </span>
                   )}
@@ -133,7 +133,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
                     type="button"
                     onClick={() => copySql(snapshotMeta.sql!)}
                     className={cn(
-                      "absolute right-0 top-2 inline-flex items-center gap-1 rounded-pill border border-rule bg-paper px-2.5 py-1 text-[11px] transition",
+                      "absolute right-0 top-2 inline-flex items-center gap-1 rounded-pill border border-rule bg-paper px-2.5 py-1 text-xs transition",
                       copiedSql
                         ? "border-success text-success"
                         : "text-muted hover:border-accent hover:text-ink",

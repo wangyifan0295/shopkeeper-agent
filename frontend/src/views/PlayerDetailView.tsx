@@ -138,7 +138,7 @@ export function PlayerDetailDrawer({
       const chronological = [...(detail?.recent_8?.records ?? [])].reverse();
       return {
         animationDuration: 320,
-        grid: { top: 18, right: 54, bottom: 28, left: 32 },
+        grid: { top: 18, right: 62, bottom: 28, left: 32 },
         tooltip: {
           trigger: "axis",
           confine: true,
@@ -153,7 +153,7 @@ export function PlayerDetailDrawer({
             if (!rec) return "";
             return [
               `<div style="font-weight:600;">第 ${rec.place} 名 · ${rec.lord}</div>`,
-              `<div style="color:${palette.ink2};font-size:11px;">${rec.match_date}</div>`,
+              `<div style="color:${palette.ink2};font-size:12px;">${rec.match_date}</div>`,
             ].join("");
           },
         },
@@ -166,7 +166,7 @@ export function PlayerDetailDrawer({
           axisLabel: {
             color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 11,
+            fontSize: 12,
             hideOverlap: true,
             margin: 10,
           },
@@ -181,7 +181,7 @@ export function PlayerDetailDrawer({
           axisLabel: {
             color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 11,
+            fontSize: 12,
             formatter: "{value}",
           },
           splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -201,7 +201,7 @@ export function PlayerDetailDrawer({
                     : rec.place <= 3
                       ? palette.success
                       : palette.muted,
-                borderColor: palette.paper,
+                borderColor: palette.paper2,
                 borderWidth: 1.5,
               },
             })),
@@ -213,12 +213,12 @@ export function PlayerDetailDrawer({
                 color: palette.muted,
                 type: "dashed",
                 width: 1,
-                opacity: 0.65,
+                opacity: 0.7,
               },
               label: {
                 color: palette.ink2,
                 fontFamily: palette.fontMono,
-                fontSize: 11,
+                fontSize: 12,
                 formatter: "均线3.5",
                 position: "end",
                 distance: 6,
@@ -271,7 +271,7 @@ export function PlayerDetailDrawer({
         className="drawer-panel flex h-dvh w-full max-w-[620px] flex-col border-l border-rule bg-paper text-ink shadow-card"
       >
         {/* 抽屉顶栏 */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-rule px-5">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-rule bg-sidebar px-5">
           <div className="min-w-0">
             <h2 className="truncate font-display text-lg text-ink">{player}</h2>
             {detail && (
@@ -519,7 +519,7 @@ export function PlayerDetailDrawer({
                         />
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                       <span className="inline-flex items-center gap-1">
                         <span className="h-2 w-2 rounded-pill bg-accent" aria-hidden="true" />
                         第 1 名
@@ -550,7 +550,7 @@ export function PlayerDetailDrawer({
                   </p>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="well overflow-x-auto px-2 py-1">
                   <table className="data-table">
                     <thead>
                       <tr>
@@ -571,8 +571,8 @@ export function PlayerDetailDrawer({
                       {sortedLords.map((row) => {
                         const share = detail.matches > 0 ? (row.matches / detail.matches) * 100 : 0;
                         return (
-                          <tr key={row.lord} className="transition hover:bg-paper-2">
-                            <td className="whitespace-nowrap font-medium">
+                          <tr key={row.lord} className="transition hover:bg-paper-3">
+                            <td className="whitespace-nowrap font-medium text-ink">
                               <button
                                 type="button"
                                 onClick={() => onSelectLord(row.lord)}
@@ -582,11 +582,11 @@ export function PlayerDetailDrawer({
                                 {row.lord}
                               </button>
                             </td>
-                            <td className="cell-num text-ink-2">
+                            <td className="cell-num text-ink">
                               <div className="inline-flex flex-col items-center gap-1">
                                 <span>
                                   {row.matches}
-                                  <span className="ml-1 text-xs text-muted">
+                                  <span className="ml-1 text-xs font-normal text-muted">
                                     ({share.toFixed(0)}%)
                                   </span>
                                 </span>
@@ -601,7 +601,7 @@ export function PlayerDetailDrawer({
                                 </span>
                               </div>
                             </td>
-                            <td className="cell-num text-ink-2">{row.wins}</td>
+                            <td className="cell-num text-ink">{row.wins}</td>
                             <td className="cell-num">
                               <WinRate value={row.win_rate} />
                             </td>

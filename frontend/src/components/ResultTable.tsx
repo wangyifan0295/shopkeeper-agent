@@ -176,7 +176,7 @@ export function ResultTable({ data }: { data: unknown }) {
           legend: {
             type: "scroll",
             bottom: 0,
-            textStyle: { color: palette.ink2, fontSize: 11 },
+            textStyle: { color: palette.ink2, fontSize: 12 },
           },
           series: [
             {
@@ -186,12 +186,12 @@ export function ResultTable({ data }: { data: unknown }) {
               center: ["50%", "44%"],
               color: palette.series,
               itemStyle: {
-                borderColor: palette.paper,
+                borderColor: palette.paper2,
                 borderWidth: 2,
               },
               label: {
                 color: palette.ink2,
-                fontSize: 11,
+                fontSize: 12,
                 formatter: "{b}",
               },
               data: labels.map((name, idx) => ({
@@ -206,7 +206,7 @@ export function ResultTable({ data }: { data: unknown }) {
       if (activeKind === "line") {
         return {
           animationDuration: 340,
-          grid: { top: 24, right: 20, bottom: 42, left: 48 },
+          grid: { top: 24, right: 20, bottom: 42, left: 52 },
           tooltip: {
             trigger: "axis",
             backgroundColor: palette.paper2,
@@ -219,9 +219,9 @@ export function ResultTable({ data }: { data: unknown }) {
             boundaryGap: false,
             data: labels,
             axisLabel: {
-              color: palette.muted,
+              color: palette.ink2,
               fontFamily: palette.fontBody,
-              fontSize: 11,
+              fontSize: 12,
               rotate: labels.length > 8 ? 22 : 0,
             },
             axisLine: { lineStyle: { color: palette.rule } },
@@ -229,9 +229,9 @@ export function ResultTable({ data }: { data: unknown }) {
           yAxis: {
             type: "value",
             axisLabel: {
-              color: palette.muted,
+              color: palette.ink2,
               fontFamily: palette.fontMono,
-              fontSize: 11,
+              fontSize: 12,
               formatter: isPercentMetric ? "{value}%" : "{value}",
             },
             splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -245,7 +245,7 @@ export function ResultTable({ data }: { data: unknown }) {
               symbolSize: 6,
               data: values,
               lineStyle: { color: palette.accent, width: 2.5 },
-              itemStyle: { color: palette.accent, borderColor: palette.paper, borderWidth: 1.5 },
+              itemStyle: { color: palette.accent, borderColor: palette.paper2, borderWidth: 1.5 },
               areaStyle: { color: palette.accentSoft },
             },
           ],
@@ -259,7 +259,7 @@ export function ResultTable({ data }: { data: unknown }) {
         const reversedValues = [...values].reverse();
         return {
           animationDuration: 340,
-          grid: { top: 12, right: 36, bottom: 26, left: 88 },
+          grid: { top: 12, right: 36, bottom: 26, left: 94 },
           tooltip: {
             trigger: "axis",
             axisPointer: { type: "shadow" },
@@ -271,9 +271,9 @@ export function ResultTable({ data }: { data: unknown }) {
           xAxis: {
             type: "value",
             axisLabel: {
-              color: palette.muted,
+              color: palette.ink2,
               fontFamily: palette.fontMono,
-              fontSize: 11,
+              fontSize: 12,
               formatter: isPercentMetric ? "{value}%" : "{value}",
             },
             splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -282,9 +282,9 @@ export function ResultTable({ data }: { data: unknown }) {
             type: "category",
             data: reversedLabels,
             axisLabel: {
-              color: palette.ink2,
+              color: palette.ink,
               fontFamily: palette.fontBody,
-              fontSize: 11,
+              fontSize: 12,
               formatter: (val: string) => (val.length > 10 ? `${val.slice(0, 9)}…` : val),
             },
             axisLine: { lineStyle: { color: palette.rule } },
@@ -303,7 +303,7 @@ export function ResultTable({ data }: { data: unknown }) {
 
       return {
         animationDuration: 340,
-        grid: { top: 24, right: 18, bottom: 42, left: 48 },
+        grid: { top: 24, right: 18, bottom: 42, left: 52 },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
@@ -316,9 +316,9 @@ export function ResultTable({ data }: { data: unknown }) {
           type: "category",
           data: labels,
           axisLabel: {
-            color: palette.ink2,
+            color: palette.ink,
             fontFamily: palette.fontBody,
-            fontSize: 11,
+            fontSize: 12,
             interval: 0,
             rotate: labels.length > 5 ? 20 : 0,
           },
@@ -327,9 +327,9 @@ export function ResultTable({ data }: { data: unknown }) {
         yAxis: {
           type: "value",
           axisLabel: {
-            color: palette.muted,
+            color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 11,
+            fontSize: 12,
             formatter: isPercentMetric ? "{value}%" : "{value}",
           },
           splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -349,14 +349,7 @@ export function ResultTable({ data }: { data: unknown }) {
   );
 
   const exportChartPng = () => {
-    const url = chartBoxRef.current?.getDataURL();
-    if (!url) return;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `query-chart-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    chartBoxRef.current?.downloadPng(`query-chart-${Date.now()}.png`);
   };
 
   if (columns.length === 0) {
@@ -447,7 +440,7 @@ export function ResultTable({ data }: { data: unknown }) {
                     "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-xs transition",
                     activeKind === kind
                       ? "bg-paper-3 font-medium text-accent"
-                      : "text-muted hover:bg-paper-3/60 hover:text-ink-2",
+                      : "text-muted hover:bg-paper-3 hover:text-ink-2",
                   )}
                 >
                   <Icon className="h-3 w-3" aria-hidden="true" />
@@ -486,15 +479,15 @@ export function ResultTable({ data }: { data: unknown }) {
           />
 
           {rows.length > 30 && (
-            <p className="text-[11px] text-muted">
+            <p className="text-xs text-muted">
               图表仅展示前 30 条记录，完整 {rows.length} 行请切换「表格」或导出 CSV 查看。
             </p>
           )}
         </div>
       ) : (
-        <div className="max-h-[360px] overflow-auto">
+        <div className="well max-h-[360px] overflow-auto">
           <table className="data-table">
-            <thead className="sticky top-0 z-10 bg-paper">
+            <thead className="sticky top-0 z-10 bg-paper-2">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -509,13 +502,12 @@ export function ResultTable({ data }: { data: unknown }) {
             </thead>
             <tbody>
               {rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="transition hover:bg-paper-2">
+                <tr key={rowIndex} className="transition hover:bg-paper-3">
                   {columns.map((column) => (
                     <td
                       key={column}
                       className={cn(
-                        "text-ink-2",
-                        numericSet.has(column) && "cell-num",
+                        numericSet.has(column) ? "cell-num text-ink" : "text-ink-2",
                       )}
                     >
                       {formatCell(row[column])}

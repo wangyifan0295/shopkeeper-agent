@@ -358,7 +358,7 @@ export function MatchesView({
             ),
           )}
           {matched && (
-            <span className="shrink-0 rounded-pill bg-paper-2 px-1.5 py-0.5 text-[11px] font-medium text-focus">
+            <span className="shrink-0 rounded-pill bg-paper-2 px-1.5 py-0.5 text-xs font-medium text-focus">
               命中
             </span>
           )}
@@ -477,7 +477,7 @@ export function MatchesView({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-xs font-medium text-ink-2">前三名</span>
-                    <span className="text-[11px] text-muted">吃分圈</span>
+                    <span className="text-xs text-muted">吃分圈</span>
                   </div>
                   <div className="space-y-1.5">{topHalf.map(renderSlotCard)}</div>
                 </div>
@@ -485,7 +485,7 @@ export function MatchesView({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-xs font-medium text-muted">后三名</span>
-                    <span className="text-[11px] text-muted">4–6 名</span>
+                    <span className="text-xs text-muted">4–6 名</span>
                   </div>
                   <div className="space-y-1.5">{bottomHalf.map(renderSlotCard)}</div>
                 </div>
@@ -501,14 +501,14 @@ export function MatchesView({
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule bg-sidebar px-4 lg:px-6">
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg">对局记录</h1>
           <p className="label hidden sm:block">按日期分组 · 小时时间轴倒序</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <p className="label num">
-            共 <span className="figure text-base text-ink-2">{meta?.total ?? "—"}</span> 场
+            共 <span className="figure text-base text-ink">{meta?.total ?? "—"}</span> 场
             {meta && meta.total_days > 0 && (
               <span className="ml-1.5 hidden text-muted sm:inline">
                 / {meta.total_days} 天

@@ -15,7 +15,7 @@ import {
   MarkLineComponent,
   TooltipComponent,
 } from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
+import { SVGRenderer } from "echarts/renderers";
 
 echarts.use([
   BarChart,
@@ -25,7 +25,7 @@ echarts.use([
   TooltipComponent,
   LegendComponent,
   MarkLineComponent,
-  CanvasRenderer,
+  SVGRenderer,
 ]);
 
 export { echarts };

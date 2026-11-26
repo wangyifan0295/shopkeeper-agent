@@ -154,7 +154,7 @@ export function DashboardView({
               `<div style="font-weight:600;font-size:13px;margin-bottom:6px;">${p.player}</div>`,
               `<div>近 ${p.recent_matches} 场吃鸡率：<b style="color:${palette.accent};">${p.recent_win_rate.toFixed(2)}%</b></div>`,
               `<div>生涯吃鸡率：<b style="color:${palette.success};">${p.win_rate.toFixed(2)}%</b>（共 ${p.matches} 场）</div>`,
-              `<div style="margin-top:5px;font-size:11px;color:${deltaColor};">状态较生涯：<b>${formatDelta(delta)}</b> · 点击柱条查看选手档案</div>`,
+              `<div style="margin-top:5px;font-size:12px;color:${deltaColor};">状态较生涯：<b>${formatDelta(delta)}</b> · 点击柱条查看选手档案</div>`,
             ].join("");
           },
         },
@@ -165,6 +165,7 @@ export function DashboardView({
             color: palette.ink,
             fontFamily: palette.fontBody,
             fontSize: 12,
+            fontWeight: 500,
             interval: 0,
             margin: 14,
             formatter: (val: string) => (val.length > 9 ? `${val.slice(0, 8)}…` : val),
@@ -177,9 +178,9 @@ export function DashboardView({
           max: (value: { max: number }) =>
             Math.min(100, Math.max(35, Math.ceil((value.max + 12) / 10) * 10)),
           axisLabel: {
-            color: palette.muted,
+            color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 11,
+            fontSize: 12,
             formatter: "{value}%",
           },
           splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -199,11 +200,9 @@ export function DashboardView({
               position: "top",
               distance: 8,
               color: palette.ink,
-              textBorderColor: palette.paper2,
-              textBorderWidth: 3,
               fontFamily: palette.fontMono,
               fontSize: 12,
-              fontWeight: 500,
+              fontWeight: 600,
               formatter: (params: unknown) => {
                 const v = (params as { value?: number })?.value;
                 return typeof v === "number" ? `${v.toFixed(1)}%` : "";
@@ -216,11 +215,11 @@ export function DashboardView({
                 color: palette.muted,
                 type: "dashed",
                 width: 1.2,
-                opacity: 0.65,
+                opacity: 0.7,
               },
               label: {
-                color: palette.muted,
-                fontSize: 11,
+                color: palette.ink2,
+                fontSize: 12,
                 fontFamily: palette.fontMono,
                 formatter: "基线 16.7%",
                 position: "end",
@@ -270,7 +269,7 @@ export function DashboardView({
 
       return {
         animationDuration: 420,
-        grid: { top: 14, right: 78, bottom: 26, left: 74 },
+        grid: { top: 14, right: 94, bottom: 26, left: 76 },
         tooltip: {
           trigger: "axis",
           confine: true,
@@ -290,16 +289,16 @@ export function DashboardView({
               `<div>吃鸡率：<b style="color:${palette.accent};">${item.win_rate.toFixed(2)}%</b>（${item.wins} 鸡）</div>`,
               `<div>前三率：<b style="color:${palette.success};">${item.top3_rate.toFixed(2)}%</b></div>`,
               `<div>总出场：<b>${item.matches}</b> 场 · 均名 ${item.avg_place.toFixed(2)}</div>`,
-              `<div style="margin-top:4px;font-size:11px;color:${palette.muted};">点击柱条查看棋手详情</div>`,
+              `<div style="margin-top:4px;font-size:12px;color:${palette.muted};">点击柱条查看棋手详情</div>`,
             ].join("");
           },
         },
         xAxis: {
           type: "value",
           axisLabel: {
-            color: palette.muted,
+            color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 11,
+            fontSize: 12,
             formatter: isWinMode ? "{value}%" : "{value}",
           },
           splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -311,6 +310,7 @@ export function DashboardView({
             color: palette.ink,
             fontFamily: palette.fontBody,
             fontSize: 12,
+            fontWeight: 500,
             margin: 12,
           },
           axisLine: { lineStyle: { color: palette.rule } },
@@ -331,9 +331,10 @@ export function DashboardView({
               show: true,
               position: "right",
               distance: 8,
-              color: palette.ink2,
+              color: palette.ink,
               fontFamily: palette.fontMono,
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: 500,
               formatter: (params: unknown) => {
                 const idx = (params as { dataIndex?: number })?.dataIndex ?? -1;
                 const item = list[idx];
@@ -352,11 +353,11 @@ export function DashboardView({
                       color: palette.muted,
                       type: "dashed",
                       width: 1,
-                      opacity: 0.6,
+                      opacity: 0.7,
                     },
                     label: {
-                      color: palette.muted,
-                      fontSize: 10,
+                      color: palette.ink2,
+                      fontSize: 12,
                       fontFamily: palette.fontMono,
                       formatter: "16.7%",
                       position: "start",
@@ -392,7 +393,7 @@ export function DashboardView({
             return [
               `<div style="font-weight:600;font-size:13px;">禁用：${p.name}</div>`,
               `<div style="margin-top:4px;">出现：<b>${p.value}</b> 场（${p.percent}%）</div>`,
-              `<div style="font-size:11px;color:${palette.muted};margin-top:3px;">点击扇区筛选该阵营对局</div>`,
+              `<div style="font-size:12px;color:${palette.muted};margin-top:3px;">点击扇区筛选该阵营对局</div>`,
             ].join("");
           },
         },
@@ -449,7 +450,7 @@ export function DashboardView({
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule bg-sidebar px-4 lg:px-6">
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg">数据大盘</h1>
           <p className="label hidden sm:block">万象大赛赛季总览</p>
@@ -712,7 +713,7 @@ export function DashboardView({
                         key={item.faction}
                         type="button"
                         onClick={() => onBrowseFactionMatches(item.faction)}
-                        className="group flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition hover:bg-paper"
+                        className="group flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition hover:bg-paper-3"
                       >
                         <span className="inline-flex min-w-0 items-center gap-2">
                           <span
@@ -726,7 +727,7 @@ export function DashboardView({
                             {item.faction}
                           </span>
                         </span>
-                        <span className="num shrink-0 text-muted">
+                        <span className="num shrink-0 font-medium text-ink-2">
                           {item.pct.toFixed(1)}%
                         </span>
                       </button>

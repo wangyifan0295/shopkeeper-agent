@@ -20,14 +20,14 @@ export function EmptyState({ examples, onUseExample, disabled = false }: EmptySt
           </p>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2.5 sm:grid-cols-2">
           {examples.map((example) => (
             <button
               key={example}
               type="button"
               onClick={() => onUseExample(example)}
               disabled={disabled}
-              className="rounded-well border border-rule bg-paper px-4 py-3.5 text-left text-sm leading-6 text-ink-2 transition hover:border-accent hover:bg-paper-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-55"
+              className="well px-4 py-3.5 text-left text-sm leading-6 text-ink-2 transition hover:border-accent hover:bg-paper-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-55"
             >
               {example}
             </button>

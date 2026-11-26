@@ -137,7 +137,7 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule bg-sidebar px-4 lg:px-6">
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg">选手榜</h1>
           <p className="label hidden sm:block">
@@ -147,7 +147,7 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <p className="label num">
-            共 <span className="figure text-base text-ink-2">{data?.total ?? "—"}</span> 位
+            共 <span className="figure text-base text-ink">{data?.total ?? "—"}</span> 位
           </p>
           {headerExtra}
         </div>
@@ -197,12 +197,12 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
               ))}
             </div>
           ) : (
-            <div className={cn("transition", loading && "opacity-60")}>
-              <div className="overflow-x-auto lg:overflow-x-visible">
+            <div className={cn("transition", loading && "opacity-75")}>
+              <div className="well px-2 py-1 max-lg:overflow-x-auto">
                 <table className="data-table">
-                  <thead className="sticky top-0 z-10 bg-paper">
+                  <thead className="sticky top-0 z-10 bg-paper-2">
                     <tr>
-                      <th scope="col">选手</th>
+                      <th scope="col" className="first:rounded-tl-well">选手</th>
                       {SORTABLE_COLUMNS.slice(0, 1).map((column) => (
                         <th key={column.key} scope="col" className="cell-num">
                           {renderSortHeader(column)}
@@ -210,7 +210,7 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
                       ))}
                       <th scope="col" className="cell-num">吃鸡数</th>
                       {SORTABLE_COLUMNS.slice(1).map((column) => (
-                        <th key={column.key} scope="col" className="cell-num">
+                        <th key={column.key} scope="col" className="cell-num last:rounded-tr-well">
                           {renderSortHeader(column)}
                         </th>
                       ))}
@@ -239,8 +239,8 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
                       </tr>
                     ) : (
                       data.rows.map((row) => (
-                        <tr key={row.player} className="transition hover:bg-paper-2">
-                          <td className="font-medium">
+                        <tr key={row.player} className="transition hover:bg-paper-3">
+                          <td className="font-medium text-ink">
                             <button
                               type="button"
                               onClick={() => onSelectPlayer(row.player)}
@@ -250,8 +250,8 @@ export function PlayersView({ onSelectPlayer, headerExtra }: PlayersViewProps) {
                               {row.player}
                             </button>
                           </td>
-                          <td className="cell-num text-ink-2">{row.matches}</td>
-                          <td className="cell-num text-ink-2">{row.wins}</td>
+                          <td className="cell-num text-ink">{row.matches}</td>
+                          <td className="cell-num text-ink">{row.wins}</td>
                           <td className="cell-num">
                             <WinRate value={row.win_rate} />
                           </td>

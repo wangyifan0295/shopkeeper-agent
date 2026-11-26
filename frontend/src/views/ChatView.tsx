@@ -56,10 +56,10 @@ export function ChatView({ chat, headerExtra }: ChatViewProps) {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule px-4 lg:px-6">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-rule bg-sidebar px-4 lg:px-6">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">智能数据分析 Agent</p>
-          <p className="label truncate">AG-UI 协议 / LangGraph</p>
+          <p className="truncate text-sm font-semibold text-ink">智能数据分析 Agent</p>
+          <p className="label truncate text-xs">AG-UI 协议 / LangGraph</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button

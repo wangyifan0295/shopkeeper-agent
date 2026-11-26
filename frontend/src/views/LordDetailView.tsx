@@ -155,7 +155,7 @@ export function LordDetailDrawer({
         onClick={(event) => event.stopPropagation()}
         className="drawer-panel flex h-dvh w-full max-w-[620px] flex-col border-l border-rule bg-paper text-ink shadow-card"
       >
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-rule px-5">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-rule bg-sidebar px-5">
           <div className="min-w-0">
             <h2 className="truncate font-display text-lg text-ink">{lord}</h2>
             {detail && (
@@ -348,7 +348,7 @@ export function LordDetailDrawer({
                     暂无选手使用过该棋手的记录
                   </p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="well overflow-x-auto px-2 py-1">
                     <table className="data-table">
                       <thead>
                         <tr>
@@ -370,8 +370,8 @@ export function LordDetailDrawer({
                       </thead>
                       <tbody>
                         {sortedPlayers.map((row) => (
-                          <tr key={row.player} className="transition hover:bg-paper-2">
-                            <td className="whitespace-nowrap font-medium">
+                          <tr key={row.player} className="transition hover:bg-paper-3">
+                            <td className="whitespace-nowrap font-medium text-ink">
                               <button
                                 type="button"
                                 onClick={() => onSelectPlayer(row.player)}
@@ -381,8 +381,8 @@ export function LordDetailDrawer({
                                 {row.player}
                               </button>
                             </td>
-                            <td className="cell-num text-ink-2">{row.matches}</td>
-                            <td className="cell-num text-ink-2">{row.wins}</td>
+                            <td className="cell-num text-ink">{row.matches}</td>
+                            <td className="cell-num text-ink">{row.wins}</td>
                             <td className="cell-num">
                               <WinRate value={row.win_rate} />
                             </td>
