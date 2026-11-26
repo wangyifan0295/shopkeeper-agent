@@ -70,12 +70,16 @@ export const EChartBox = forwardRef<EChartBoxHandle, EChartBoxProps>(function EC
     return () => observer.disconnect();
   }, []);
 
-  // 初始化实例与 ResizeObserver
+  // 初始化实例与 ResizeObserver（强制至少 2x DPR 渲染，确保图表文字锐利不发糊）
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const instance = echarts.init(el, undefined, { renderer: "canvas" });
+    const dpr = Math.max(window.devicePixelRatio || 1, 2);
+    const instance = echarts.init(el, undefined, {
+      renderer: "canvas",
+      devicePixelRatio: dpr,
+    });
     chartRef.current = instance;
 
     instance.on("click", (params) => {

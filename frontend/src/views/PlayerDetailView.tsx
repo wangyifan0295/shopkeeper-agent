@@ -138,9 +138,10 @@ export function PlayerDetailDrawer({
       const chronological = [...(detail?.recent_8?.records ?? [])].reverse();
       return {
         animationDuration: 320,
-        grid: { top: 18, right: 16, bottom: 26, left: 32 },
+        grid: { top: 18, right: 54, bottom: 28, left: 32 },
         tooltip: {
           trigger: "axis",
+          confine: true,
           backgroundColor: palette.paper2,
           borderColor: palette.rule,
           borderWidth: 1,
@@ -152,7 +153,7 @@ export function PlayerDetailDrawer({
             if (!rec) return "";
             return [
               `<div style="font-weight:600;">第 ${rec.place} 名 · ${rec.lord}</div>`,
-              `<div style="color:${palette.muted};font-size:11px;">${rec.match_date}</div>`,
+              `<div style="color:${palette.ink2};font-size:11px;">${rec.match_date}</div>`,
             ].join("");
           },
         },
@@ -162,7 +163,13 @@ export function PlayerDetailDrawer({
           data: chronological.map((rec) =>
             rec.match_date ? rec.match_date.slice(5) : rec.lord,
           ),
-          axisLabel: { color: palette.muted, fontFamily: palette.fontMono, fontSize: 10 },
+          axisLabel: {
+            color: palette.ink2,
+            fontFamily: palette.fontMono,
+            fontSize: 11,
+            hideOverlap: true,
+            margin: 10,
+          },
           axisLine: { lineStyle: { color: palette.rule } },
         },
         yAxis: {
@@ -172,9 +179,9 @@ export function PlayerDetailDrawer({
           max: 6,
           interval: 1,
           axisLabel: {
-            color: palette.muted,
+            color: palette.ink2,
             fontFamily: palette.fontMono,
-            fontSize: 10,
+            fontSize: 11,
             formatter: "{value}",
           },
           splitLine: { lineStyle: { color: palette.rule, type: "dashed" } },
@@ -206,13 +213,15 @@ export function PlayerDetailDrawer({
                 color: palette.muted,
                 type: "dashed",
                 width: 1,
-                opacity: 0.6,
+                opacity: 0.65,
               },
               label: {
-                color: palette.muted,
-                fontSize: 10,
-                formatter: "均线 3.5",
-                position: "insideEndTop",
+                color: palette.ink2,
+                fontFamily: palette.fontMono,
+                fontSize: 11,
+                formatter: "均线3.5",
+                position: "end",
+                distance: 6,
               },
               data: [{ yAxis: AVG_PLACE_BASELINE }],
             },
