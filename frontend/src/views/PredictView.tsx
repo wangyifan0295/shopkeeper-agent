@@ -197,6 +197,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
       targetFaction: string,
       targetSeats: PredictSeatInput[],
       keepActualPlaces: Record<string, number> | null = null,
+      beforeMatchId: string | null = null,
     ) => {
       setPredicting(true);
       setPredictError(null);
@@ -205,6 +206,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
       try {
         const res = await predictMatch({
           banned_faction: targetFaction,
+          before_match_id: beforeMatchId,
           seats: targetSeats,
         });
         setResult(res);
@@ -241,7 +243,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
 
     setBannedFaction(found.banned_faction);
     setSeats(nextSeats);
-    void runPredict(found.banned_faction, nextSeats, placesMap);
+    void runPredict(found.banned_faction, nextSeats, placesMap, found.match_id);
   };
 
   const handleReset = () => {
@@ -262,6 +264,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
     try {
       const res = await explainPrediction({
         banned_faction: bannedFaction,
+        before_match_id: replayMatchId || null,
         seats,
       });
       setCommentary(res.commentary);
@@ -558,7 +561,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-lg text-ink">AI 胜率预测</h1>
           <p className="label hidden sm:block">
-            本地 OpenSkill + Plackett-Luce 模型推演 · 毫秒级预测 6 人吃鸡率与前三率
+            双头异构 Plackett-Luce · 吃鸡爆发力 + 保分下限 + 禁阵营 BP 适配
           </p>
         </div>
 
@@ -745,7 +748,14 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
               <button
                 type="button"
                 disabled={!canSubmit}
-                onClick={() => void runPredict(bannedFaction, seats, actualPlaces)}
+                onClick={() =>
+                  void runPredict(
+                    bannedFaction,
+                    seats,
+                    actualPlaces,
+                    replayMatchId || null,
+                  )
+                }
                 className="btn btn-primary px-6"
               >
                 <Target className="h-4 w-4" aria-hidden="true" />
@@ -767,7 +777,12 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-ink-2">
-                      头号夺冠热门{actualPlaces ? " · 复盘模式" : ""}
+                      头号夺冠热门
+                      {result.replay_leak_free
+                        ? " · 赛前无泄漏复盘"
+                        : actualPlaces
+                          ? " · 复盘模式"
+                          : ""}
                     </p>
                     {topCandidate && (
                       <>
@@ -945,7 +960,14 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
                                   ? "库中暂无历史对局，按默认实力先验估算"
                                   : `天梯 ${row.context.player_mu.toFixed(1)} · 历史 ${row.context.player_matches} 场（均第 ${row.context.player_avg_place ?? "-"} 名）${
                                       row.context.player_lord_matches > 0
-                                        ? ` · 用${row.lord} ${row.context.player_lord_matches} 场 ${row.context.player_lord_wins} 鸡`
+                                        ? ` · 用${row.lord} ${row.context.player_lord_matches}场${row.context.player_lord_wins}鸡`
+                                        : ""
+                                    }${
+                                      result.banned_faction &&
+                                      row.context.lord_ban_matches > 0 &&
+                                      row.context.lord_ban_win_rate !== null &&
+                                      row.context.lord_ban_win_rate !== undefined
+                                        ? ` · 禁${result.banned_faction} ${row.context.lord_ban_matches}场(${row.context.lord_ban_win_rate.toFixed(0)}%鸡)`
                                         : ""
                                     }`}
                               </p>
@@ -1105,7 +1127,7 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
 
                   {showModelDetails && (
                     <div className="space-y-4 border-t border-rule px-5 py-4">
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                         <div className="rounded-well border border-rule bg-paper p-3.5">
                           <div className="text-xs text-ink-2">样本外回测场次</div>
                           <div className="figure mt-1 text-lg text-ink">
@@ -1127,26 +1149,58 @@ export function PredictView({ onSelectPlayer, onSelectLord, headerExtra }: Predi
                           <div className="mt-0.5 text-xs text-muted">随机基线 33.3%</div>
                         </div>
                         <div className="rounded-well border border-rule bg-paper p-3.5">
-                          <div className="text-xs text-ink-2">预测前三平均命中</div>
+                          <div className="text-xs text-ink-2">前三覆盖冠军</div>
                           <div className="figure mt-1 text-lg text-ink">
-                            {modelSummary.backtest.top3_avg_overlap.toFixed(2)} / 3
+                            {(modelSummary.backtest.top3_cover_rate ?? 50).toFixed(1)}%
                           </div>
-                          <div className="mt-0.5 text-xs text-muted">随机基线 1.50 / 3</div>
+                          <div className="mt-0.5 text-xs text-muted">随机基线 50.0%</div>
+                        </div>
+                        <div className="rounded-well border border-rule bg-paper p-3.5">
+                          <div className="text-xs text-ink-2">预测前三准确率</div>
+                          <div className="figure mt-1 text-lg text-ink">
+                            {(
+                              modelSummary.backtest.top3_accuracy ??
+                              (modelSummary.backtest.top3_avg_overlap / 3) * 100
+                            ).toFixed(1)}
+                            %
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted">
+                            场均 {modelSummary.backtest.top3_avg_overlap.toFixed(2)} / 3
+                          </div>
                         </div>
                       </div>
 
-                      <div>
-                        <p className="mb-2 text-xs font-medium text-ink-2">
-                          历史对局自动拟合出的 6 维特征权重（L2={modelSummary.best_l2}）
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {modelSummary.feature_weights.map((item) => (
-                            <span key={item.key} className="pill-tag num text-ink">
-                              {item.label}：{item.weight >= 0 ? "+" : ""}
-                              {item.weight.toFixed(3)}
-                            </span>
-                          ))}
+                      <div className="space-y-3">
+                        <div>
+                          <p className="mb-2 text-xs font-medium text-ink-2">
+                            夺冠吃鸡模型权重（聚焦第 1 名爆发力 · L2={modelSummary.best_l2}）
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {modelSummary.feature_weights.map((item) => (
+                              <span key={item.key} className="pill-tag num text-ink">
+                                {item.label}：{item.weight >= 0 ? "+" : ""}
+                                {item.weight.toFixed(3)}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+
+                        {modelSummary.rank_weights && modelSummary.rank_weights.length > 0 && (
+                          <div>
+                            <p className="mb-2 text-xs font-medium text-ink-2">
+                              保分排位模型权重（聚焦 2~6 名稳定性 · L2=
+                              {modelSummary.best_l2_rank ?? 0.8}）
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {modelSummary.rank_weights.map((item) => (
+                                <span key={item.key} className="pill-tag num text-ink">
+                                  {item.label}：{item.weight >= 0 ? "+" : ""}
+                                  {item.weight.toFixed(3)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

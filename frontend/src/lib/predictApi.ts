@@ -45,6 +45,7 @@ export function fetchPredictOptions(): Promise<PredictOptionsResponse> {
 /** 提交 6 人阵容与禁用阵营，毫秒级计算吃鸡率、前三率与 6 维归因 */
 export function predictMatch(payload: {
   banned_faction: string;
+  before_match_id?: string | null;
   seats: PredictSeatInput[];
 }): Promise<PredictMatchResponse> {
   return requestJson(`${BASE_URL}/match`, {
@@ -57,6 +58,7 @@ export function predictMatch(payload: {
 /** 按需调用大模型，基于量化预测结果生成简短赛前点评 */
 export function explainPrediction(payload: {
   banned_faction: string;
+  before_match_id?: string | null;
   seats: PredictSeatInput[];
 }): Promise<PredictExplainResponse> {
   return requestJson(`${BASE_URL}/explain`, {

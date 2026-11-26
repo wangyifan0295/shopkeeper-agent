@@ -35,6 +35,11 @@ class SeatInput(BaseModel):
 
 class PredictMatchRequest(BaseModel):
     banned_faction: str = Field(default="", max_length=20, description="禁用阵营，留空表示未禁用")
+    before_match_id: str | None = Field(
+        default=None,
+        max_length=32,
+        description="可选：复盘历史对局时传入该场编号，自动回退到开赛前快照避免未来数据泄漏",
+    )
     seats: list[SeatInput] = Field(min_length=6, max_length=6, description="6 个席位的选手与棋手")
 
     @field_validator("seats")
@@ -66,6 +71,7 @@ async def predict_match_handler(
         repository=predict_repository,
         banned_faction=payload.banned_faction,
         seats=[seat.model_dump() for seat in payload.seats],
+        before_match_id=payload.before_match_id,
     )
 
 
@@ -81,6 +87,7 @@ async def explain_prediction_handler(
             repository=predict_repository,
             banned_faction=payload.banned_faction,
             seats=[seat.model_dump() for seat in payload.seats],
+            before_match_id=payload.before_match_id,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"AI 赛前点评生成失败：{exc}") from exc

@@ -47,7 +47,10 @@ export type ModelBacktestMetrics = {
   brier_score: number;
   top1_hit_rate: number;
   top2_hit_rate: number;
+  top3_cover_rate?: number;
+  top3_accuracy?: number;
   top3_avg_overlap: number;
+  kendall_tau?: number;
 };
 
 export type FeatureWeightItem = {
@@ -59,8 +62,10 @@ export type FeatureWeightItem = {
 export type ModelSummary = {
   total_matches: number;
   best_l2: number;
+  best_l2_rank?: number;
   backtest: ModelBacktestMetrics;
   feature_weights: FeatureWeightItem[];
+  rank_weights?: FeatureWeightItem[];
 };
 
 export type PredictOptionsResponse = {
@@ -97,6 +102,8 @@ export type PredictSeatContext = {
   player_lord_wins: number;
   player_lord_avg_place: number | null;
   lord_ban_matches: number;
+  lord_ban_win_rate?: number | null;
+  lord_ban_avg_place?: number | null;
   mirror_rivals: number;
 };
 
@@ -121,6 +128,7 @@ export type MirrorGroup = {
 
 export type PredictMatchResponse = {
   banned_faction: string;
+  replay_leak_free?: boolean;
   mirror_groups: MirrorGroup[];
   seats: PredictSeatResult[];
   model_summary: ModelSummary;
