@@ -37,10 +37,10 @@ export function Sidebar({ view, onNavigate, chat, overview }: SidebarProps) {
   const isActive = (item: NavView) => view === item;
 
   return (
-    <aside className="hidden min-h-0 flex-col border-r border-rule lg:flex">
+    <aside className="hidden min-h-0 flex-col border-r border-rule bg-sidebar lg:flex">
       <div className="px-5 pb-5 pt-6">
-        <h1 className="font-display text-lg text-ink">万象棋数据工作台</h1>
-        <p className="label mt-1 font-mono">shopkeeper-agent</p>
+        <h1 className="font-display text-lg font-semibold text-ink">万象棋数据工作台</h1>
+        <p className="mt-1 font-mono text-xs text-muted">shopkeeper-agent</p>
       </div>
 
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-3 py-2">
@@ -55,10 +55,10 @@ export function Sidebar({ view, onNavigate, chat, overview }: SidebarProps) {
                 onClick={() => onNavigate(item.view)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex h-10 w-full items-center gap-3 rounded-well px-3 text-sm font-medium transition",
+                  "relative flex h-10 w-full items-center gap-3 rounded-well px-3 text-sm transition",
                   active
-                    ? "bg-paper-2 text-ink"
-                    : "text-muted hover:bg-paper-2 hover:text-ink-2",
+                    ? "bg-paper-3 font-semibold text-ink"
+                    : "font-medium text-ink-2 hover:bg-paper-3 hover:text-ink",
                 )}
               >
                 {active && (

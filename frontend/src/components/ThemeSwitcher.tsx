@@ -84,9 +84,9 @@ export function ThemeSwitcher({ theme, onChange, className }: ThemeSwitcherProps
         <div
           role="listbox"
           aria-label="颜色主题列表"
-          className="absolute right-0 top-full z-[300] mt-2 w-56 rounded-well border border-rule bg-paper-2 p-1.5 shadow-card"
+          className="absolute right-0 top-full z-[300] mt-2 w-60 rounded-well border border-rule bg-paper-2 p-1.5 shadow-card"
         >
-          <p className="px-2.5 pb-1.5 pt-1 text-xs text-muted">切换颜色主题</p>
+          <p className="px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted">切换颜色主题</p>
           <div className="space-y-0.5">
             {THEMES.map((item) => {
               const active = item.id === theme;
@@ -118,8 +118,8 @@ export function ThemeSwitcher({ theme, onChange, className }: ThemeSwitcherProps
                     />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-medium leading-tight">{item.label}</span>
-                    <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted">
+                    <span className="block text-xs font-semibold leading-tight">{item.label}</span>
+                    <span className="mt-0.5 block truncate text-xs leading-tight text-muted">
                       {item.description}
                     </span>
                   </span>

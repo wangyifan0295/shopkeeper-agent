@@ -1,11 +1,11 @@
 /**
  * 主题状态 Hook
- * 管理 4 套工作台配色（余烬 / 弈局 / 战术 / 手账），持久化到 localStorage，
- * 并实时同步 html[data-theme] 与浏览器 theme-color。
+ * 管理 5 套工作台配色（晴空 / 余烬 / 弈局 / 战术 / 手账），持久化到 localStorage，
+ * 默认启用最主流清晰的现代网页浅色主题（light），并实时同步 html[data-theme] 与浏览器 theme-color。
  */
 import { useEffect, useState } from "react";
 
-export type ThemeId = "ember" | "ink" | "obsidian" | "journal";
+export type ThemeId = "light" | "ember" | "ink" | "obsidian" | "journal";
 
 export type ThemeMeta = {
   id: ThemeId;
@@ -18,6 +18,15 @@ export type ThemeMeta = {
 };
 
 export const THEMES: ThemeMeta[] = [
+  {
+    id: "light",
+    label: "晴空",
+    description: "浅灰底与纯白卡片（标准网页）",
+    mode: "light",
+    themeColor: "#f5f7fa",
+    swatchBg: "#f5f7fa",
+    swatchAccent: "#2563eb",
+  },
   {
     id: "ember",
     label: "余烬",
@@ -48,7 +57,7 @@ export const THEMES: ThemeMeta[] = [
   {
     id: "journal",
     label: "手账",
-    description: "暖象牙纸白与钴蓝（浅色）",
+    description: "暖象牙纸白与钴蓝（复古浅色）",
     mode: "light",
     themeColor: "#f7f5f0",
     swatchBg: "#f5f2ea",
@@ -56,7 +65,7 @@ export const THEMES: ThemeMeta[] = [
   },
 ];
 
-const STORAGE_KEY = "workbench-theme";
+const STORAGE_KEY = "workbench-theme-v2";
 
 function isThemeId(value: string | null): value is ThemeId {
   return THEMES.some((item) => item.id === value);
@@ -73,7 +82,7 @@ function readInitialTheme(): ThemeId {
   } catch {
     // 隐私模式等场景忽略存储异常
   }
-  return "ember";
+  return "light";
 }
 
 export function useTheme() {

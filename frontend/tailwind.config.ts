@@ -15,6 +15,7 @@ export default {
         mono: "var(--font-outlier)",
       },
       colors: {
+        sidebar: "var(--color-sidebar)",
         paper: {
           DEFAULT: "var(--color-paper)",
           2: "var(--color-paper-2)",

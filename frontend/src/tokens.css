@@ -1,111 +1,164 @@
-:root {
-  color-scheme: dark;
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
   --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
-  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
-  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
-  --text-figure: 2.75rem;
+
+  /* 整数像素对齐的 rem 字号阶梯（12 / 14 / 16 / 18 / 20 / 24 / 30 / 40px），消除亚像素模糊 */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-display-s: 1.25rem;
+  --text-display: 1.5rem;
+  --text-section: 1.125rem;
+  --text-title: 1rem;
+  --text-lead: 1rem;
+  --text-figure: 2.5rem;
+
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
   --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
   --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
-  --font-display: "Boska", "Noto Serif SC", "Noto Serif CJK SC", "SimSun", Georgia, serif;
-  --font-body: "Geist", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
-  --font-outlier: "Geist Mono", ui-monospace, Consolas, monospace;
-  --radius-card: 28px; --radius-well: 16px; --radius-pill: 999px; --rule-hair: 1px;
-  --shadow-card: 0 50px 90px -30px oklch(8% 0.01 40 / 0.5);
-  --tracking-display: -0.02em; --display-weight: 500;
 
-  /* 主题 1（默认）：余烬 · 暖炭黑 + 余烬橙 + 青玉成功色 */
+  /* Windows 与 macOS 双端高清晰度现代无衬线与等宽数字字体栈 */
+  --font-display: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-outlier: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", ui-monospace, monospace;
+
+  --radius-card: 24px; --radius-well: 14px; --radius-pill: 999px; --rule-hair: 1px;
+  --tracking-display: -0.015em; --display-weight: 600;
+
+  /* 主题 1（默认）：晴空 · 标准现代网页浅色（浅冷灰画布 + 纯白卡片侧栏 + 墨黑字 + 网页蓝） */
+  --color-paper: #f5f7fa;
+  --color-paper-2: #ffffff;
+  --color-paper-3: #eef2f6;
+  --color-sidebar: #ffffff;
+  --color-ink: #0f172a;
+  --color-ink-2: #334155;
+  --color-muted: #64748b;
+  --color-rule: #e2e8f0;
+  --color-accent: #2563eb;
+  --color-accent-ink: #ffffff;
+  --color-focus: #1d4ed8;
+  --color-success: #059669;
+  --color-error: #dc2626;
+  --color-rank-1: #d97706;
+  --color-rank-2: #475569;
+  --color-rank-3: #b45309;
+  --color-badge-bg: #f1f5f9;
+  --shadow-well: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --shadow-card: 0 16px 36px -10px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+  --heat-0: #f5f7fa; --heat-1: #dbeafe; --heat-2: #93c5fd; --heat-3: #60a5fa;
+  --heat-4: #3b82f6; --heat-5: #2563eb; --heat-6: #1d4ed8;
+  --surface-atmosphere: none;
+  --surface-pattern: none;
+}
+
+/* 主题 2：余烬 · 暖炭黑 + 余烬橙 + 青玉成功色 */
+:root[data-theme="ember"] {
+  color-scheme: dark;
   --color-paper: oklch(13% 0.012 40);
-  --color-paper-2: oklch(17.5% 0.016 40);
-  --color-paper-3: oklch(22% 0.018 40);
-  --color-ink: oklch(94% 0.02 80);
-  --color-ink-2: oklch(84% 0.025 70);
-  --color-muted: oklch(70% 0.028 60);
-  --color-rule: oklch(96% 0.01 80 / 0.12);
-  --color-accent: oklch(70% 0.2 45);
+  --color-paper-2: oklch(17.8% 0.016 40);
+  --color-paper-3: oklch(22.8% 0.018 40);
+  --color-sidebar: oklch(13% 0.012 40);
+  --color-ink: oklch(96% 0.015 80);
+  --color-ink-2: oklch(87% 0.02 70);
+  --color-muted: oklch(73% 0.024 60);
+  --color-rule: oklch(96% 0.01 80 / 0.15);
+  --color-accent: oklch(71% 0.2 45);
   --color-accent-ink: oklch(14% 0.02 40);
   --color-focus: oklch(76% 0.19 56);
-  --color-success: oklch(72% 0.14 162);
+  --color-success: oklch(74% 0.14 162);
   --color-error: oklch(72% 0.16 25);
-  --color-rank-1: oklch(80% 0.16 80);
-  --color-rank-2: oklch(82% 0.015 240);
-  --color-rank-3: oklch(71% 0.12 52);
-  --color-badge-bg: oklch(94% 0.02 80 / 0.07);
+  --color-rank-1: oklch(82% 0.16 80);
+  --color-rank-2: oklch(84% 0.015 240);
+  --color-rank-3: oklch(73% 0.12 52);
+  --color-badge-bg: oklch(94% 0.02 80 / 0.09);
+  --shadow-well: none;
+  --shadow-card: 0 50px 90px -30px oklch(8% 0.01 40 / 0.55);
   --heat-0: oklch(12% 0.012 40); --heat-1: oklch(22% 0.07 22); --heat-2: oklch(40% 0.16 27); --heat-3: oklch(60% 0.21 36);
   --heat-4: oklch(76% 0.19 56); --heat-5: oklch(89% 0.14 78); --heat-6: oklch(98% 0.04 95);
   --surface-atmosphere: radial-gradient(ellipse 75% 42% at 50% -12%, oklch(70% 0.18 45 / 0.08), transparent 72%);
   --surface-pattern: none;
 }
 
-/* 主题 2：弈局 · 玄青墨底 + 宣纸白 + 鎏金与朱砂 + 极淡棋盘经纬点阵 */
+/* 主题 3：弈局 · 玄青墨底 + 宣纸白 + 鎏金与朱砂 + 极淡棋盘经纬点阵 */
 :root[data-theme="ink"] {
   color-scheme: dark;
   --color-paper: oklch(13.5% 0.016 215);
-  --color-paper-2: oklch(18% 0.018 215);
-  --color-paper-3: oklch(22.8% 0.02 215);
-  --color-ink: oklch(94% 0.018 85);
-  --color-ink-2: oklch(83% 0.02 80);
-  --color-muted: oklch(68% 0.02 215);
-  --color-rule: oklch(90% 0.02 85 / 0.12);
-  --color-accent: oklch(78% 0.13 82);
+  --color-paper-2: oklch(18.2% 0.018 215);
+  --color-paper-3: oklch(23.2% 0.02 215);
+  --color-sidebar: oklch(13.5% 0.016 215);
+  --color-ink: oklch(96% 0.014 85);
+  --color-ink-2: oklch(86% 0.018 80);
+  --color-muted: oklch(72% 0.02 215);
+  --color-rule: oklch(92% 0.02 85 / 0.15);
+  --color-accent: oklch(79% 0.13 82);
   --color-accent-ink: oklch(14% 0.02 215);
   --color-focus: oklch(84% 0.12 86);
-  --color-success: oklch(73% 0.12 168);
-  --color-error: oklch(69% 0.17 24);
-  --color-rank-1: oklch(83% 0.14 84);
-  --color-rank-2: oklch(82% 0.014 215);
-  --color-rank-3: oklch(71% 0.13 38);
-  --color-badge-bg: oklch(78% 0.13 82 / 0.1);
+  --color-success: oklch(75% 0.12 168);
+  --color-error: oklch(70% 0.17 24);
+  --color-rank-1: oklch(84% 0.14 84);
+  --color-rank-2: oklch(84% 0.014 215);
+  --color-rank-3: oklch(73% 0.13 38);
+  --color-badge-bg: oklch(78% 0.13 82 / 0.12);
+  --shadow-well: none;
   --shadow-card: 0 50px 90px -30px oklch(6% 0.015 215 / 0.55);
   --surface-atmosphere: radial-gradient(ellipse 70% 42% at 50% -12%, oklch(78% 0.12 82 / 0.07), transparent 72%);
   --surface-pattern: radial-gradient(oklch(90% 0.02 85 / 0.09) 1px, transparent 1px);
 }
 
-/* 主题 3：战术 · 冷曜石深灰 + 赛场鎏金 + 冷青语义色 */
+/* 主题 4：战术 · 冷曜石深灰 + 赛场鎏金 + 冷青语义色 */
 :root[data-theme="obsidian"] {
   color-scheme: dark;
   --color-paper: oklch(14% 0.014 258);
-  --color-paper-2: oklch(18.5% 0.018 258);
-  --color-paper-3: oklch(23.5% 0.022 258);
-  --color-ink: oklch(95% 0.008 255);
-  --color-ink-2: oklch(84% 0.014 255);
-  --color-muted: oklch(68% 0.018 255);
-  --color-rule: oklch(92% 0.015 255 / 0.12);
-  --color-accent: oklch(80% 0.14 85);
+  --color-paper-2: oklch(18.8% 0.018 258);
+  --color-paper-3: oklch(23.8% 0.022 258);
+  --color-sidebar: oklch(14% 0.014 258);
+  --color-ink: oklch(96.5% 0.008 255);
+  --color-ink-2: oklch(87% 0.012 255);
+  --color-muted: oklch(72% 0.018 255);
+  --color-rule: oklch(92% 0.015 255 / 0.15);
+  --color-accent: oklch(81% 0.14 85);
   --color-accent-ink: oklch(15% 0.015 258);
-  --color-focus: oklch(76% 0.13 210);
-  --color-success: oklch(76% 0.14 192);
-  --color-error: oklch(70% 0.17 22);
-  --color-rank-1: oklch(82% 0.15 86);
-  --color-rank-2: oklch(83% 0.018 245);
-  --color-rank-3: oklch(72% 0.11 54);
-  --color-badge-bg: oklch(76% 0.13 210 / 0.1);
+  --color-focus: oklch(77% 0.13 210);
+  --color-success: oklch(77% 0.14 192);
+  --color-error: oklch(71% 0.17 22);
+  --color-rank-1: oklch(83% 0.15 86);
+  --color-rank-2: oklch(85% 0.018 245);
+  --color-rank-3: oklch(73% 0.11 54);
+  --color-badge-bg: oklch(76% 0.13 210 / 0.12);
+  --shadow-well: none;
   --shadow-card: 0 50px 90px -30px oklch(6% 0.02 258 / 0.55);
   --surface-atmosphere: radial-gradient(ellipse 75% 42% at 50% -12%, oklch(76% 0.13 210 / 0.08), transparent 72%);
   --surface-pattern: none;
 }
 
-/* 主题 4：手账 · 暖象牙纸白 + 浓墨黑 + 钴蓝点缀（浅色编辑风） */
+/* 主题 5：手账 · 暖象牙纸白 + 浓墨黑 + 钴蓝点缀（复古纸质风） */
 :root[data-theme="journal"] {
   color-scheme: light;
   --color-paper: oklch(97.2% 0.009 85);
-  --color-paper-2: oklch(93.8% 0.012 85);
-  --color-paper-3: oklch(89.5% 0.015 85);
-  --color-ink: oklch(20% 0.018 255);
-  --color-ink-2: oklch(34% 0.018 255);
-  --color-muted: oklch(50% 0.018 255);
-  --color-rule: oklch(20% 0.02 255 / 0.13);
-  --color-accent: oklch(48% 0.15 255);
-  --color-accent-ink: oklch(98% 0.005 85);
-  --color-focus: oklch(54% 0.16 255);
-  --color-success: oklch(46% 0.12 162);
-  --color-error: oklch(52% 0.17 25);
-  --color-rank-1: oklch(56% 0.14 78);
-  --color-rank-2: oklch(46% 0.02 255);
-  --color-rank-3: oklch(52% 0.11 48);
-  --color-badge-bg: oklch(20% 0.02 255 / 0.06);
-  --shadow-card: 0 24px 48px -24px oklch(20% 0.02 255 / 0.14);
-  --surface-atmosphere: radial-gradient(ellipse 75% 40% at 50% -12%, oklch(48% 0.15 255 / 0.05), transparent 70%);
+  --color-paper-2: oklch(94.2% 0.011 85);
+  --color-paper-3: oklch(90% 0.014 85);
+  --color-sidebar: oklch(97.2% 0.009 85);
+  --color-ink: oklch(18% 0.018 255);
+  --color-ink-2: oklch(30% 0.018 255);
+  --color-muted: oklch(46% 0.018 255);
+  --color-rule: oklch(20% 0.02 255 / 0.15);
+  --color-accent: oklch(47% 0.16 255);
+  --color-accent-ink: oklch(98.5% 0.005 85);
+  --color-focus: oklch(52% 0.16 255);
+  --color-success: oklch(45% 0.13 162);
+  --color-error: oklch(50% 0.18 25);
+  --color-rank-1: oklch(54% 0.14 78);
+  --color-rank-2: oklch(44% 0.02 255);
+  --color-rank-3: oklch(50% 0.11 48);
+  --color-badge-bg: oklch(20% 0.02 255 / 0.07);
+  --shadow-well: none;
+  --shadow-card: 0 24px 48px -24px oklch(20% 0.02 255 / 0.16);
+  --surface-atmosphere: radial-gradient(ellipse 75% 40% at 50% -12%, oklch(48% 0.15 255 / 0.04), transparent 70%);
   --surface-pattern: none;
 }

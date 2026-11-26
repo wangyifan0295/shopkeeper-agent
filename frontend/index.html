@@ -7,37 +7,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="description" content="万象棋王牌对决数据工作台：选手与棋手胜率榜、分棋手明细与对话问数。" />
-    <meta name="theme-color" content="#181311" />
+    <meta name="theme-color" content="#f5f7fa" />
     <title>万象棋数据工作台</title>
     <script>
       (function () {
         var colors = {
+          light: "#f5f7fa",
           ember: "#181311",
           ink: "#141a1d",
           obsidian: "#161920",
           journal: "#f7f5f0",
         };
         try {
-          var saved = localStorage.getItem("workbench-theme");
-          var theme = saved && colors[saved] ? saved : "ember";
+          var saved = localStorage.getItem("workbench-theme-v2");
+          var theme = saved && colors[saved] ? saved : "light";
           document.documentElement.dataset.theme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute("content", colors[theme]);
         } catch (_) {
-          document.documentElement.dataset.theme = "ember";
+          document.documentElement.dataset.theme = "light";
         }
       })();
     </script>
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://api.fontshare.com/v2/css?f[]=boska@500&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>

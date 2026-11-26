@@ -282,10 +282,10 @@ export default function App() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper text-ink lg:grid lg:grid-cols-[300px_minmax(0,1fr)]">
-      {/* 窄屏顶部导航（lg 以下），5 个视图入口 + 右上角主题下拉 */}
+      {/* 窄屏顶部导航（lg 以下），6 个视图入口 + 右上角主题下拉 */}
       <nav
         aria-label="窄屏视图导航"
-        className="flex shrink-0 items-center gap-1 border-b border-rule px-2 py-2 lg:hidden"
+        className="flex shrink-0 items-center gap-1 border-b border-rule bg-sidebar px-2 py-2 lg:hidden"
       >
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
           {NAV_ITEMS.map((item) => {
@@ -298,8 +298,10 @@ export default function App() {
                 onClick={() => navigate(item.view)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex h-9 shrink-0 items-center gap-1.5 rounded-pill px-2.5 text-sm font-medium transition",
-                  active ? "bg-paper-2 text-ink" : "text-muted hover:bg-paper-2 hover:text-ink-2",
+                  "relative flex h-9 shrink-0 items-center gap-1.5 rounded-pill px-2.5 text-sm transition",
+                  active
+                    ? "bg-paper-3 font-semibold text-ink"
+                    : "font-medium text-ink-2 hover:bg-paper-3 hover:text-ink",
                 )}
               >
                 {active && (
